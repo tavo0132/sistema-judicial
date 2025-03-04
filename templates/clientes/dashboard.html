@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>Dashboard de Cliente</h2>
+            
+            <!-- Sección de Notificaciones -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">Notificaciones Recientes</h3>
+                    <a href="#" class="btn btn-sm btn-outline-primary">Ver Todas</a>
+                </div>
+                <div class="card-body">
+                    {% if notificaciones %}
+                        <div class="list-group">
+                            {% for notificacion in notificaciones %}
+                                <div class="list-group-item {% if notificacion.estado == 'no_leida' %}list-group-item-primary{% endif %}">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">{{ notificacion.titulo }}</h5>
+                                        <small>{{ notificacion.fecha_creacion|date:"d/m/Y H:i" }}</small>
+                                    </div>
+                                    <p class="mb-1">{{ notificacion.mensaje }}</p>
+                                    {% if notificacion.url_relacionada %}
+                                        <a href="{{ notificacion.url_relacionada }}" class="btn btn-sm btn-info">Ver Detalles</a>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-center mb-0">No hay notificaciones nuevas.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Información del Cliente -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3>Información del Cliente</h3>
+                    <p><strong>Nombre:</strong> {{ cliente.nombres }} {{ cliente.apellidos }}</p>
+                    <p><strong>Correo:</strong> {{ cliente.correo_electronico }}</p>
+                    <p><strong>Teléfono:</strong> {{ cliente.numero_telefono }}</p>
+                    <p><strong>Ciudad:</strong> {{ cliente.ciudad }}</p>
+                    <p><strong>Dirección:</strong> {{ cliente.direccion|default:"No especificada" }}</p>
+                    <p><strong>Estado:</strong> {{ cliente.estado_cliente }}</p>
+                    <p><strong>Fecha de Registro:</strong> {{ cliente.fecha_registro|date:"d/m/Y" }}</p>
+                </div>
+            </div>
+
+            <!-- Radicaciones -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>Mis Radicaciones</h3>
+                        <a href="{% url 'crear_radicacion' cliente.id_cliente %}" class="btn btn-primary">Nueva Radicación</a>
+                    </div>
+                    
+                    {% if radicaciones %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Número de Radicado</th>
+                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                    <th>Proceso Consultado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for radicacion in radicaciones %}
+                                <tr>
+                                    <td>{{ radicacion.numero_radicado }}</td>
+                                    <td>{{ radicacion.fecha_radicado|date:"d/m/Y" }}</td>
+                                    <td>{{ radicacion.estado_radicado }}</td>
+                                    <td>{{ radicacion.proceso_consultado }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center">No hay radicaciones registradas.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
