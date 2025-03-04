@@ -1,0 +1,42 @@
+Resumen de cambios y aprendizaje - 04/03/2024
+
+1. Configuración inicial de Git
+- Instalación exitosa de Git
+- Configuración del usuario:
+  * Nombre: Gustavo Vergara Arias
+  * Email: tavo0132@gmail.com
+
+2. Creación del repositorio
+- Inicialización del repositorio local
+- Creación del repositorio en GitHub: sistema-judicial
+- Configuración del remoto y primera subida de código
+- Implementación exitosa de autenticación mediante token
+
+3. Comandos básicos de Git aprendidos:
+git status - Ver el estado de los archivos
+git add . - Agregar todos los cambios
+git add archivo.py - Agregar un archivo específico
+git commit -m "mensaje" - Guardar cambios con descripción
+git push - Subir cambios a GitHub
+git pull - Obtener últimos cambios
+git log - Ver historial de commits
+git checkout -- archivo - Descartar cambios no guardados
+
+4. Flujo de trabajo establecido:
+1) Antes de trabajar: git pull
+2) Después de modificar:
+   - git status
+   - git add .
+   - git commit -m "descripción"
+   - git push
+
+5. Próximos pasos:
+- Practicar el flujo de trabajo con ejemplos reales
+- Profundizar en el uso de Git con el proyecto
+- Implementar buenas prácticas de commits y mensajes descriptivos
+
+Notas importantes:
+- Siempre hacer pull antes de empezar a trabajar
+- Hacer commits frecuentes con mensajes descriptivos
+- El repositorio está configurado y listo para usar
+- La autenticación está configurada y funcionando correctamente
