@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from .models import Cliente, Radicacion, Notificacion
+from .models import Cliente, Radicacion
 from .utils import crear_notificacion
 
 # Create your views here.

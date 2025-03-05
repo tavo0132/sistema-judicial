@@ -1,64 +1,64 @@
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
 from administradores.models import Administrador
+from django.utils import timezone
+from django.contrib.auth.models import AbstractUser
 
-class Cliente(models.Model):
-    ESTADO_CHOICES = [
-        ('Activo', 'Activo'),
-        ('Inactivo', 'Inactivo'),
-    ]
-
-    id_cliente = models.AutoField(primary_key=True)
-    nombres = models.CharField(max_length=100)
-    apellidos = models.CharField(max_length=100)
+class Cliente(AbstractUser):
+    id = models.BigAutoField(primary_key=True)
     cedula = models.CharField(max_length=20, unique=True)
-    correo_electronico = models.EmailField(unique=True)
-    contrasena = models.CharField(max_length=128)
-    estado_cliente = models.CharField(max_length=20, default='Activo')
-    fecha_registro = models.DateTimeField(auto_now_add=True)
-    numero_telefono = models.CharField(max_length=20)
-    direccion = models.CharField(max_length=200, null=True, blank=True)
+    numero_telefono = models.CharField(max_length=15)
+    direccion = models.TextField()
     ciudad = models.CharField(max_length=100)
-    token_recuperacion = models.CharField(max_length=100, null=True, blank=True)
-    id_administrador = models.ForeignKey(Administrador, on_delete=models.SET_NULL, null=True, db_column='id_administrador')
+    estado_cliente = models.CharField(max_length=20, default='Activo')
+    fecha_registro = models.DateTimeField(default=timezone.now)
+    
+    # Agregamos related_name para evitar conflictos
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='cliente_set',
+        blank=True,
+        help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.',
+        verbose_name='groups',
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='cliente_set',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        verbose_name='user permissions',
+    )
 
     class Meta:
         db_table = 'clientes'
 
-    def set_password(self, raw_password):
-        self.contrasena = make_password(raw_password)
-
-    def check_password(self, raw_password):
-        return check_password(raw_password, self.contrasena)
-
     def __str__(self):
-        return f"{self.nombres} {self.apellidos}"
+        return f"{self.first_name} {self.last_name}"
 
 class Radicacion(models.Model):
-    id_radicacion = models.BigAutoField(primary_key=True)
-    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, db_column='id_cliente', null=True)
-    numero_radicado = models.CharField(max_length=50, unique=True)
-    fecha_radicado = models.DateField()
-    fecha_ultima_actuacion = models.DateField(null=True, blank=True)
-    despacho_departamento = models.CharField(max_length=200, null=True, blank=True)
-    sujetos_procesales = models.TextField(null=True, blank=True)
-    descripcion = models.TextField(null=True, blank=True)
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-    
-    ESTADO_CHOICES = [
-        ('Abierto', 'Abierto'),
-        ('Cerrado', 'Cerrado'),
-    ]
-    estado_radicado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='Abierto')
-    
-    PROCESO_CONSULTADO_CHOICES = [
-        ('Si', 'Si'),
-        ('No', 'No'),
-    ]
-    proceso_consultado = models.CharField(max_length=3, choices=PROCESO_CONSULTADO_CHOICES, default='No')
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, db_column='id_cliente')
+    numero_radicado = models.CharField(max_length=50)
+    fecha_radicado = models.DateTimeField(default=timezone.now)
+    proceso_consultado = models.CharField(max_length=2, default='No')
+    estado_radicado = models.CharField(max_length=20, default='Abierto')
 
     class Meta:
         db_table = 'radicaciones'
 
     def __str__(self):
-        return f"Radicado: {self.numero_radicado}"
+        return f"Radicación {self.numero_radicado} - {self.cliente}"
+
+class Notificacion(models.Model):
+    tipo = models.CharField(max_length=50)
+    titulo = models.CharField(max_length=200)
+    mensaje = models.TextField()
+    fecha_creacion = models.DateTimeField(default=timezone.now)
+    es_para_admin = models.BooleanField(default=False)
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, null=True, blank=True)
+    url_relacionada = models.CharField(max_length=200, blank=True)
+    
+    class Meta:
+        ordering = ['-fecha_creacion']
+        
+    def __str__(self):
+        return f"{self.titulo} - {self.fecha_creacion}"
