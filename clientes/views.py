@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from .models import Cliente, Radicacion
+from .models import Cliente, Radicacion, LogAccesoCliente
 from .utils import crear_notificacion
 
 # Create your views here.
@@ -14,6 +14,16 @@ def cliente_login(request):
         try:
             cliente = Cliente.objects.get(correo_electronico=correo)
             if cliente.check_password(contrasena):
+                # Actualiza la última sesión
+                cliente.ultima_sesion = timezone.now()
+                cliente.save()
+
+                # Registra el log de acceso
+                LogAccesoCliente.objects.create(
+                    cliente=cliente,
+                    ip=request.META.get('REMOTE_ADDR')
+                )
+
                 request.session['cliente_id'] = cliente.id_cliente
                 return redirect('cliente_dashboard')
             else:

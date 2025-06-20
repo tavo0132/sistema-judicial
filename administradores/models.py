@@ -22,3 +22,11 @@ class Administrador(models.Model):
 
     def __str__(self):
         return f"{self.nombres} {self.apellidos}"
+
+class LogAccesoAdministrador(models.Model):
+    administrador = models.ForeignKey('Administrador', on_delete=models.CASCADE)
+    fecha_hora = models.DateTimeField(auto_now_add=True)
+    ip = models.GenericIPAddressField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.administrador} - {self.fecha_hora}"

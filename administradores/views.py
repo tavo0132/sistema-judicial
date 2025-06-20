@@ -1,10 +1,11 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Administrador
+from .models import Administrador, LogAccesoAdministrador
 from .forms import AdminLoginForm
 from clientes.models import Cliente, Radicacion
 from django.db.models import Count
+from django.utils import timezone
 
 def admin_login(request):
     if request.method == 'POST':
@@ -15,6 +16,16 @@ def admin_login(request):
             try:
                 admin = Administrador.objects.get(correo_electronico=correo)
                 if admin.check_password(contrasena):
+                    # Actualiza la última sesión
+                    admin.ultima_sesion = timezone.now()
+                    admin.save()
+
+                    # Registra el log de acceso
+                    LogAccesoAdministrador.objects.create(
+                        administrador=admin,
+                        ip=request.META.get('REMOTE_ADDR')
+                    )
+
                     request.session['admin_id'] = admin.id_administrador
                     return redirect('admin_dashboard')
                 else:

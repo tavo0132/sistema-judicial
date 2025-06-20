@@ -12,6 +12,7 @@ class Cliente(AbstractUser):
     ciudad = models.CharField(max_length=100)
     estado_cliente = models.CharField(max_length=20, default='Activo')
     fecha_registro = models.DateTimeField(default=timezone.now)
+    ultima_sesion = models.DateTimeField(null=True, blank=True)  # <-- Nuevo campo
     
     # Agregamos related_name para evitar conflictos
     groups = models.ManyToManyField(
@@ -62,3 +63,11 @@ class Notificacion(models.Model):
         
     def __str__(self):
         return f"{self.titulo} - {self.fecha_creacion}"
+
+class LogAccesoCliente(models.Model):
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
+    fecha_hora = models.DateTimeField(auto_now_add=True)
+    ip = models.GenericIPAddressField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.cliente} - {self.fecha_hora}"
