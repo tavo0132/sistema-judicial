@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Radicaciones de {{ cliente.nombres }} {{ cliente.apellidos }}</h2>
+    
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="text-end mb-3">
+        <a href="{% url 'crear_radicacion' cliente.id_cliente %}" class="btn btn-primary">Nueva Radicación</a>
+    </div>
+
+    {% if radicaciones %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Número de Radicado</th>
+                    <th>Fecha de Radicación</th>
+                    <th>Estado</th>
+                    <th>Proceso Consultado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for radicacion in radicaciones %}
+                <tr>
+                    <td>{{ radicacion.numero_radicado }}</td>
+                    <td>{{ radicacion.fecha_radicado|date:"d/m/Y" }}</td>
+                    <td>
+                        <span class="badge {% if radicacion.estado_radicado == 'Abierto' %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ radicacion.estado_radicado }}
+                        </span>
+                    </td>
+                    <td>{{ radicacion.proceso_consultado }}</td>
+                    <td>
+                        <button class="btn btn-info btn-sm">Ver Detalles</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-center">No hay radicaciones registradas.</p>
+    {% endif %}
+
+    <div class="mt-3">
+        <button onclick="history.back()" class="btn btn-secondary">Volver al Dashboard</button>
+    </div>
+</div>
+{% endblock %} 

@@ -5,6 +5,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
 import time
+from django.conf import settings
+from clientes.models import Radicacion
+from .models import ResultadoScraping
 
 def scrape_proceso(driver, radicacion):
     try:
@@ -38,10 +41,6 @@ def scrape_proceso(driver, radicacion):
             EC.presence_of_element_located((By.CSS_SELECTOR, "tbody"))
         )
         
-        # Imprimir la información de la tabla
-        print(f"\nResultados para radicación {radicacion}:")
-        print(tabla.text)
-        
         # Procesar las fechas
         texto_completo = tabla.text
         lineas = texto_completo.split('\n')
@@ -54,19 +53,21 @@ def scrape_proceso(driver, radicacion):
                     fecha_actuacion = datetime.strptime(fecha_str, "%Y-%m-%d")
                     
                     if (fecha_actual - fecha_actuacion).days < 365:
-                        print(f"\nSu radicación tuvo una actuación recientemente el día {fecha_str}")
-                        break
+                        # Guardar en la base de datos
+                        ResultadoScraping.objects.create(
+                            radicacion=radicacion,
+                            fecha_actuacion=fecha_actuacion,
+                            descripcion=linea.strip()
+                        )
                 except ValueError:
                     continue
                 
     except Exception as e:
         print(f"Error procesando {radicacion}: {str(e)}")
         
-def main():
-    radicaciones = [
-        "11001333400220140008200",
-        "11001333100220110027600",
-    ]
+def actualizar_radicaciones():
+    # Obtener todas las radicaciones de la base de datos
+    radicaciones = Radicacion.objects.all()
     
     # Configurar opciones de Chrome
     options = webdriver.ChromeOptions()
@@ -79,10 +80,7 @@ def main():
     
     try:
         for radicacion in radicaciones:
-            scrape_proceso(driver, radicacion)
+            scrape_proceso(driver, radicacion.numero_radicado)
             time.sleep(3)  # Pausa entre consultas
     finally:
-        driver.quit()
-
-if __name__ == "__main__":
-    main()
+        driver.quit() 

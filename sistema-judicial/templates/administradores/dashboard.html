@@ -1,0 +1,130 @@
+{% extends 'shared/base.html' %}
+
+{% block title %}Dashboard Administrador{% endblock %}
+
+{% block navigation %}
+<div class="collapse navbar-collapse" id="navbarNav">
+    <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+            <span class="nav-link">Bienvenido, {{ admin.nombres }}</span>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'admin_logout' %}">Cerrar Sesión</a>
+        </li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Panel de Administración</h2>
+    
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Clientes Registrados</h3>
+            <a href="{% url 'registrar_cliente' %}" class="btn btn-primary">Registrar Nuevo Cliente</a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Nombres</th>
+                            <th>Apellidos</th>
+                            <th>Cédula</th>
+                            <th>Correo</th>
+                            <th>Teléfono</th>
+                            <th>Ciudad</th>
+                            <th>Estado</th>
+                            <th>Fecha Registro</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in clientes %}
+                        <tr>
+                            <td>{{ cliente.nombres }}</td>
+                            <td>{{ cliente.apellidos }}</td>
+                            <td>{{ cliente.cedula }}</td>
+                            <td>{{ cliente.correo_electronico }}</td>
+                            <td>{{ cliente.numero_telefono|default:"-" }}</td>
+                            <td>{{ cliente.ciudad|default:"-" }}</td>
+                            <td>
+                                <span class="badge {% if cliente.estado_cliente == 'Activo' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ cliente.estado_cliente }}
+                                </span>
+                            </td>
+                            <td>{{ cliente.fecha_registro|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'editar_cliente' cliente.id_cliente %}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i> Editar
+                                    </a>
+                                    <a href="{% url 'ver_radicaciones_cliente' cliente.id_cliente %}" class="btn btn-sm btn-info ms-1">
+                                        <i class="fas fa-folder-open"></i> Radicaciones
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center">No hay clientes registrados</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="mb-0">Últimas Radicaciones</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Número Radicado</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th>Proceso Consultado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for radicacion in ultimas_radicaciones %}
+                        <tr>
+                            <td>{{ radicacion.cliente.nombres }} {{ radicacion.cliente.apellidos }}</td>
+                            <td>{{ radicacion.numero_radicado }}</td>
+                            <td>{{ radicacion.fecha_radicado|date:"d/m/Y" }}</td>
+                            <td>
+                                <span class="badge {% if radicacion.estado_radicado == 'Abierto' %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ radicacion.estado_radicado }}
+                                </span>
+                            </td>
+                            <td>{{ radicacion.proceso_consultado }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No hay radicaciones registradas</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
