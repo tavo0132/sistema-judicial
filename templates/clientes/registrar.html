@@ -24,11 +24,11 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
-                                    <label for="nombres">Nombres</label>
+                                    <label for="nombres">Nombre(s)</label>
                                     <input type="text" class="form-control" id="nombres" name="nombres" required>
                                 </div>
                                 <div class="form-group mb-3">
-                                    <label for="apellidos">Apellidos</label>
+                                    <label for="apellidos">Apellido(s)</label>
                                     <input type="text" class="form-control" id="apellidos" name="apellidos" required>
                                 </div>
                                 <div class="form-group mb-3">
@@ -50,12 +50,24 @@
                                     <input type="text" class="form-control" id="numero_telefono" name="numero_telefono" required>
                                 </div>
                                 <div class="form-group mb-3">
-                                    <label for="direccion">Dirección</label>
-                                    <input type="text" class="form-control" id="direccion" name="direccion">
-                                </div>
-                                <div class="form-group mb-3">
                                     <label for="ciudad">Ciudad</label>
                                     <input type="text" class="form-control" id="ciudad" name="ciudad" required>
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="pais">País</label>
+                                    <select class="form-control" id="pais" name="pais" required>
+                                        <option value="">Seleccione un país</option>
+                                        <option value="EC">Ecuador</option>
+                                        <option value="CO">Colombia</option>
+                                        <option value="PE">Perú</option>
+                                        <option value="VE">Venezuela</option>
+                                        <option value="BO">Bolivia</option>
+                                        <option value="PY">Paraguay</option>
+                                        <option value="CL">Chile</option>
+                                        <option value="AR">Argentina</option>
+                                        <option value="UY">Uruguay</option>
+                                        <option value="BR">Brasil</option>
+                                    </select>
                                 </div>
                                 <div class="form-group mb-3">
                                     <label for="estado_cliente">Estado del Cliente</label>
@@ -75,4 +87,4 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

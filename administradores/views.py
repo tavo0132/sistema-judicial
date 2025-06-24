@@ -6,6 +6,11 @@ from .forms import AdminLoginForm
 from clientes.models import Cliente, Radicacion
 from django.db.models import Count
 from django.utils import timezone
+from django.contrib.admin.views.decorators import staff_member_required
+import sys
+
+sys.path.append(r'C:\Users\Gustavo\Documents\Dev\Lenguajes\Python\Fullstack\sistema-judicial-master\scraping')
+from scraping.scraper_colombia import consultar_radicaciones
 
 def admin_login(request):
     if request.method == 'POST':
@@ -68,3 +73,21 @@ def admin_logout(request):
     if 'admin_id' in request.session:
         del request.session['admin_id']
     return redirect('admin_login')
+
+@staff_member_required
+def iniciar_scraping(request):
+    if request.method == "POST":
+        clientes = Cliente.objects.filter(estado_cliente="Activo", pais="Colombia")
+        total_consultados = 0
+        for cliente in clientes:
+            radicaciones = Radicacion.objects.filter(cliente=cliente, proceso_consultado="No")
+            radicados = [rad.numero_radicado for rad in radicaciones]
+            if radicados:
+                consultar_radicaciones(radicados)
+                for rad in radicaciones:
+                    rad.proceso_consultado = "Si"
+                    rad.save()
+                    total_consultados += 1
+        messages.success(request, f"Scraping finalizado. Procesos consultados: {total_consultados}")
+        return redirect('admin_dashboard')
+    return redirect('admin_dashboard')

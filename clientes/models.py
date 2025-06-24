@@ -13,6 +13,7 @@ class Cliente(AbstractUser):
     estado_cliente = models.CharField(max_length=20, default='Activo')
     fecha_registro = models.DateTimeField(default=timezone.now)
     ultima_sesion = models.DateTimeField(null=True, blank=True)  # <-- Nuevo campo
+    pais = models.CharField(max_length=30, choices=[('Colombia', 'Colombia'), ('Ecuador', 'Ecuador')], default='Colombia')  # <-- Nuevo campo
     
     # Agregamos related_name para evitar conflictos
     groups = models.ManyToManyField(
@@ -40,8 +41,11 @@ class Radicacion(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, db_column='id_cliente')
     numero_radicado = models.CharField(max_length=50)
     fecha_radicado = models.DateTimeField(default=timezone.now)
+    fecha_ultima_actuacion = models.DateTimeField(null=True, blank=True)  # <-- Nuevo campo
     proceso_consultado = models.CharField(max_length=2, default='No')
     estado_radicado = models.CharField(max_length=20, default='Abierto')
+    despacho_departamento = models.CharField(max_length=200, blank=True, null=True)
+    sujetos_procesales = models.TextField(blank=True, null=True)     # <-- Nuevo campo
 
     class Meta:
         db_table = 'radicaciones'

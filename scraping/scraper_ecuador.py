@@ -15,7 +15,7 @@ def scrape_proceso(driver, radicacion):
         wait = WebDriverWait(driver, 20)
         
         # Cargar la página
-        driver.get("https://consultaprocesos.ramajudicial.gov.co/Procesos/NumeroRadicacion")
+        driver.get("https://procesosjudiciales.funcionjudicial.gob.ec/busqueda")
         
         # Esperar y ubicar el campo de entrada
         input_field = wait.until(

@@ -15,7 +15,7 @@
     {% endif %}
     
     <div class="text-end mb-3">
-        <a href="{% url 'crear_radicacion' cliente.id_cliente %}" class="btn btn-primary">Nueva Radicación</a>
+        <a href="{% url 'crear_radicacion' cliente.id %}" class="btn btn-primary">Nueva Radicación</a>
     </div>
 
     {% if radicaciones %}
@@ -43,6 +43,8 @@
                     <td>{{ radicacion.proceso_consultado }}</td>
                     <td>
                         <button class="btn btn-info btn-sm">Ver Detalles</button>
+                        <a href="{% url 'eliminar_radicacion' radicacion.id %}" class="btn btn-danger btn-sm"
+                           onclick="return confirm('¿Está seguro de eliminar esta radicación?');">Eliminar</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -57,4 +59,4 @@
         <button onclick="history.back()" class="btn btn-secondary">Volver al Dashboard</button>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
