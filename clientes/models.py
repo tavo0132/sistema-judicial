@@ -45,7 +45,7 @@ class Radicacion(models.Model):
     proceso_consultado = models.CharField(max_length=2, default='No')
     estado_radicado = models.CharField(max_length=20, default='Abierto')
     despacho_departamento = models.CharField(max_length=200, blank=True, null=True)
-    sujetos_procesales = models.TextField(blank=True, null=True)     # <-- Nuevo campo
+    sujetos_procesales = models.TextField(blank=True, null=True)
 
     class Meta:
         db_table = 'radicaciones'

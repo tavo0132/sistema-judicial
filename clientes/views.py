@@ -133,6 +133,10 @@ def crear_radicacion(request, cliente_id):
             numero_radicado = request.POST.get('numero_radicado')
             proceso_consultado = request.POST.get('proceso_consultado')
 
+            if not numero_radicado:
+                messages.error(request, 'Debe ingresar el número de radicado.')
+                return render(request, 'clientes/crear_radicacion.html')
+
             # Validar duplicado para este cliente
             if Radicacion.objects.filter(cliente=cliente, numero_radicado=numero_radicado).exists():
                 messages.warning(request, 'Su proceso judicial ya ha sido registrado.')
@@ -143,7 +147,8 @@ def crear_radicacion(request, cliente_id):
                 cliente=cliente,
                 numero_radicado=numero_radicado,
                 proceso_consultado=proceso_consultado,
-                # otros campos si aplica
+                fecha_radicado=timezone.now(),
+                estado_radicado='Abierto',
             )
             messages.success(request, 'Radicación creada exitosamente.')
             return redirect('ver_radicaciones_cliente', id_cliente=cliente_id)

@@ -83,7 +83,7 @@ def iniciar_scraping(request):
             radicaciones = Radicacion.objects.filter(cliente=cliente, proceso_consultado="No")
             radicados = [rad.numero_radicado for rad in radicaciones]
             if radicados:
-                consultar_radicaciones(radicados)
+                consultar_radicaciones(radicados, cliente.id)  # <-- Aquí el cambio
                 for rad in radicaciones:
                     rad.proceso_consultado = "Si"
                     rad.save()

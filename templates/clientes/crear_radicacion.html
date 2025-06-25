@@ -6,8 +6,8 @@
     <form method="post" class="mt-3">
         {% csrf_token %}
         <div class="mb-3">
-            <label for="numero_radicacion" class="form-label">Número de Radicado:</label>
-            <input type="text" class="form-control" id="numero_radicacion" name="numero_radicacion" required>
+            <label for="numero_radicado" class="form-label">Número de Radicado:</label>
+            <input type="text" class="form-control" id="numero_radicado" name="numero_radicado" required>
         </div>
         <div class="mb-3">
             <label for="proceso_consultado" class="form-label">Proceso Consultado:</label>
@@ -16,4 +16,4 @@
         <button type="submit" class="btn btn-primary mt-3">Crear Radicación</button>
     </form>
 </div>
-{% endblock %} 
+{% endblock %}

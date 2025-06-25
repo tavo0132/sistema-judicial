@@ -6,9 +6,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
 import time
 from django.conf import settings
-from clientes.models import Radicacion
+from clientes.models import Radicacion, Cliente
 from scraping.models import ResultadoScraping
 from django.utils import timezone
+import os
 
 def scrape_proceso(driver, numero_radicado):
     wait = WebDriverWait(driver, 20)
@@ -44,6 +45,15 @@ def scrape_proceso(driver, numero_radicado):
         print(f"Error procesando {numero_radicado}: {str(e)}")
         return resultado
 
+def log_scraping(mensaje):
+    log_dir = r"C:\Users\Gustavo\Documents\Dev\Lenguajes\Python\Fullstack\sistema-judicial-master\scraping\logs_scraper_colombia"
+    os.makedirs(log_dir, exist_ok=True)
+    now = datetime.now()
+    log_filename = f"scraping_log_{now.strftime('%d-%m-%Y_%H.%M')}.txt"
+    log_path = os.path.join(log_dir, log_filename)
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(mensaje + "\n")
+
 def actualizar_radicaciones():
     # Obtener todas las radicaciones de la base de datos
     radicaciones = Radicacion.objects.all()
@@ -64,7 +74,7 @@ def actualizar_radicaciones():
     finally:
         driver.quit()
 
-def consultar_radicaciones(radicados):
+def consultar_radicaciones(radicados, id_cliente):
     options = webdriver.ChromeOptions()
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
@@ -73,7 +83,7 @@ def consultar_radicaciones(radicados):
     try:
         for numero_radicado in radicados:
             datos = scrape_proceso(driver, numero_radicado)
-            print(f"Datos extraídos para {numero_radicado}: {datos}")  # <-- Agrega esto
+            log_scraping(f"Datos extraídos para {numero_radicado}: {datos}")
             try:
                 rad = Radicacion.objects.get(numero_radicado=numero_radicado)
                 from datetime import datetime
@@ -81,24 +91,45 @@ def consultar_radicaciones(radicados):
                     try:
                         fecha = datetime.strptime(datos["fecha_radicado"], "%Y-%m-%d")
                         rad.fecha_radicado = timezone.make_aware(fecha)
-                    except Exception:
+                    except Exception as e:
                         rad.fecha_radicado = None
+                        log_scraping(f"Error fecha_radicado: {e}")
                 if datos["fecha_ultima_actuacion"]:
                     try:
                         fecha = datetime.strptime(datos["fecha_ultima_actuacion"], "%Y-%m-%d")
                         rad.fecha_ultima_actuacion = timezone.make_aware(fecha)
-                    except Exception:
+                    except Exception as e:
                         rad.fecha_ultima_actuacion = None
+                        log_scraping(f"Error fecha_ultima_actuacion: {e}")
                 if datos["despacho_departamento"]:
-                    print("Asignando despacho_departamento:", datos["despacho_departamento"])
                     rad.despacho_departamento = datos["despacho_departamento"]
                 if datos["sujetos_procesales"]:
-                    print("Asignando sujetos_procesales:", datos["sujetos_procesales"])
                     rad.sujetos_procesales = datos["sujetos_procesales"]
-                print("Antes de guardar:", rad.fecha_radicado, rad.fecha_ultima_actuacion, rad.despacho_departamento, rad.sujetos_procesales)
+                log_scraping(f"Antes de guardar: {rad.numero_radicado}, {rad.fecha_radicado}, {rad.fecha_ultima_actuacion}, {rad.despacho_departamento}, {rad.sujetos_procesales}")
                 rad.save()
+                rad.refresh_from_db()
+                log_scraping(f"Verificación en DB: {rad.numero_radicado}, {rad.despacho_departamento}, {rad.sujetos_procesales}")
+                log_scraping(f"Después de guardar: {rad.numero_radicado}, {rad.despacho_departamento}, {rad.sujetos_procesales}")
+                log_scraping(f"Radicación actualizada: {rad.numero_radicado}")
             except Radicacion.DoesNotExist:
-                print(f"Radicación {numero_radicado} no encontrada en la base de datos.")
+                try:
+                    cliente = Cliente.objects.get(id=id_cliente)
+                except Cliente.DoesNotExist:
+                    log_scraping(f"El cliente con id={id_cliente} no existe, no se puede guardar la radicación {numero_radicado}.")
+                    continue
+
+                rad = Radicacion(
+                    cliente=cliente,
+                    numero_radicado=numero_radicado,
+                    fecha_radicado=timezone.now(),
+                    fecha_ultima_actuacion=None,
+                    proceso_consultado='No',
+                    estado_radicado='Abierto',
+                    despacho_departamento=datos.get("despacho_departamento"),
+                    sujetos_procesales=datos.get("sujetos_procesales"),
+                )
+                rad.save()
+                log_scraping(f"Radicación {numero_radicado} creada para el cliente {cliente.id}")
             time.sleep(3)
     finally:
         driver.quit()
