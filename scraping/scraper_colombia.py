@@ -49,6 +49,15 @@ def scrape_proceso(driver, numero_radicado):
         print(f"Error procesando {numero_radicado}: {str(e)}")
     return resultado
 
+def log_scraping(mensaje):
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs_scraper_colombia")
+    os.makedirs(log_dir, exist_ok=True)
+    now = time.strftime("%d-%m-%Y_%H.%M")
+    log_filename = f"scraping_log_{now}.txt"
+    log_path = os.path.join(log_dir, log_filename)
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(mensaje + "\n")
+
 def main():
     # Obtiene todos los números de radicado desde la base de datos
     radicados = list(Radicacion.objects.values_list('numero_radicado', flat=True))
@@ -64,6 +73,7 @@ def main():
         for numero_radicado in radicados:
             datos = scrape_proceso(driver, numero_radicado)
             resultados.append(datos)
+            log_scraping(f"Datos extraídos para {numero_radicado}: {datos}")
             time.sleep(3)
     finally:
         driver.quit()
