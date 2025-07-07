@@ -1,5 +1,9 @@
 import os
 import sys
+
+# Agrega la ruta raíz del proyecto al sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import django
 import json
 import time
@@ -8,9 +12,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from notifications.notifications_colombia import obtener_fecha_actuacion_reciente
 
 # Configura el entorno de Django para acceder a los modelos
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sistema_judicial.settings')
 django.setup()
 
@@ -45,6 +49,9 @@ def scrape_proceso(driver, numero_radicado):
                     resultado["fecha_ultima_actuacion"] = fechas[1]
                 resultado["despacho_departamento"] = celdas[3].text.strip()
                 resultado["sujetos_procesales"] = celdas[4].text.strip().replace('\n', ' | ')
+        print(tabla.text)
+        # Aquí se integra la función de notificación
+        obtener_fecha_actuacion_reciente(tabla.text)
     except Exception as e:
         print(f"Error procesando {numero_radicado}: {str(e)}")
     return resultado
