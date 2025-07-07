@@ -1,11 +1,20 @@
+import os
+import sys
+import django
+import json
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import time
-import json
-import os
+
+# Configura el entorno de Django para acceder a los modelos
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sistema_judicial.settings')
+django.setup()
+
+from clientes.models import Radicacion
 
 def scrape_proceso(driver, numero_radicado):
     wait = WebDriverWait(driver, 20)
@@ -41,10 +50,8 @@ def scrape_proceso(driver, numero_radicado):
     return resultado
 
 def main():
-    radicados = [
-        "63001311000120240016500",
-        # Agrega más radicados aquí si lo deseas
-    ]
+    # Obtiene todos los números de radicado desde la base de datos
+    radicados = list(Radicacion.objects.values_list('numero_radicado', flat=True))
     resultados = []
 
     options = webdriver.ChromeOptions()
@@ -61,7 +68,7 @@ def main():
     finally:
         driver.quit()
 
-    # Guardar resultados en un archivo JSON
+    # Guardar resultados en un archivo JSON en la carpeta scraping
     output_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         "resultados_scraping.json"
