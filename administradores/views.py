@@ -7,10 +7,11 @@ from clientes.models import Cliente, Radicacion
 from django.db.models import Count
 from django.utils import timezone
 from django.contrib.admin.views.decorators import staff_member_required
+import subprocess
 import sys
 
 sys.path.append(r'C:\Users\Gustavo\Documents\Dev\Lenguajes\Python\Fullstack\sistema-judicial-master\scraping')
-from scraping.scraper_colombia import consultar_radicaciones
+#from scraping.scraper_colombia import consultar_radicaciones
 
 def admin_login(request):
     if request.method == 'POST':
@@ -77,17 +78,21 @@ def admin_logout(request):
 @staff_member_required
 def iniciar_scraping(request):
     if request.method == "POST":
-        clientes = Cliente.objects.filter(estado_cliente="Activo", pais="Colombia")
-        total_consultados = 0
-        for cliente in clientes:
-            radicaciones = Radicacion.objects.filter(cliente=cliente, proceso_consultado="No")
-            radicados = [rad.numero_radicado for rad in radicaciones]
-            if radicados:
-                consultar_radicaciones(radicados, cliente.id)  # <-- Aquí el cambio
-                for rad in radicaciones:
-                    rad.proceso_consultado = "Si"
-                    rad.save()
-                    total_consultados += 1
-        messages.success(request, f"Scraping finalizado. Procesos consultados: {total_consultados}")
+        try:
+            # Ejecuta el script de scraping
+            subprocess.run([
+                sys.executable,
+                r'C:\Users\Gustavo\Documents\Dev\Lenguajes\Python\Fullstack\sistema-judicial-master\scraping\scraper_colombia.py'
+            ], check=True)
+
+            # Ejecuta el script de guardado
+            subprocess.run([
+                sys.executable,
+                r'C:\Users\Gustavo\Documents\Dev\Lenguajes\Python\Fullstack\sistema-judicial-master\saving\saving_data.py'
+            ], check=True)
+
+            messages.success(request, "Scraping y guardado finalizados correctamente.")
+        except subprocess.CalledProcessError as e:
+            messages.error(request, f"Ocurrió un error al ejecutar los scripts: {e}")
         return redirect('admin_dashboard')
     return redirect('admin_dashboard')
