@@ -1,0 +1,3 @@
+Datos extraídos para 63001311000120240016500: {'numero_radicado': '63001311000120240016500', 'fecha_radicado': '2024-08-20', 'fecha_ultima_actuacion': '2025-05-08', 'despacho_departamento': 'JUZGADO 001 DE FAMILIA DE ARMENIA (QUINDÍO)', 'sujetos_procesales': 'Demandante: JEAN PIERRE ZULUAGA ATENCIO | Demandado: STEFANIA GUAPACHA ALVAREZ'}
+Datos extraídos para 25000234100020120042500: {'numero_radicado': '25000234100020120042500', 'fecha_radicado': None, 'fecha_ultima_actuacion': None, 'despacho_departamento': None, 'sujetos_procesales': None}
+Datos extraídos para 11001032400020120016200: {'numero_radicado': '11001032400020120016200', 'fecha_radicado': None, 'fecha_ultima_actuacion': None, 'despacho_departamento': None, 'sujetos_procesales': None}

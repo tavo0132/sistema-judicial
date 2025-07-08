@@ -12,6 +12,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from notifications.email_sender import EmailSender
 from notifications.notifications_colombia import obtener_fecha_actuacion_reciente
 
 # Configura el entorno de Django para acceder a los modelos
@@ -19,6 +20,11 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sistema_judicial.settings')
 django.setup()
 
 from clientes.models import Radicacion
+
+# Configuración del remitente (puedes moverlo a settings o variables de entorno)
+EMAIL = "tavo0132@gmail.com"
+PASSWORD = "jbuf phcp ymnp fhjy"  # Reemplaza con tu contraseña de aplicación
+sender = EmailSender(EMAIL, PASSWORD)
 
 def scrape_proceso(driver, numero_radicado):
     wait = WebDriverWait(driver, 20)
@@ -50,8 +56,31 @@ def scrape_proceso(driver, numero_radicado):
                 resultado["despacho_departamento"] = celdas[3].text.strip()
                 resultado["sujetos_procesales"] = celdas[4].text.strip().replace('\n', ' | ')
         print(tabla.text)
-        # Aquí se integra la función de notificación
-        obtener_fecha_actuacion_reciente(tabla.text)
+        fecha_reciente = obtener_fecha_actuacion_reciente(tabla.text)
+        if fecha_reciente:
+            try:
+                radicacion = Radicacion.objects.get(numero_radicado=numero_radicado)
+                correo_cliente = radicacion.cliente.email
+            except Exception as e:
+                print(f"No se pudo obtener el correo del cliente: {e}")
+                correo_cliente = None
+
+            if correo_cliente:
+                asunto = f"Actualización Proceso Judicial - {numero_radicado}"
+                mensaje = f"""
+                Hola,
+
+                Se ha registrado una actuación reciente en su proceso judicial.
+
+                Número de radicado: {numero_radicado}
+                Fecha de actuación: {fecha_reciente}
+
+                Consulte el sistema para más detalles.
+
+                Saludos,
+                Sistema Judicial
+                """
+                sender.enviar_correo(correo_cliente, asunto, mensaje)
     except Exception as e:
         print(f"Error procesando {numero_radicado}: {str(e)}")
     return resultado
