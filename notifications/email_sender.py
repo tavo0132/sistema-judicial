@@ -21,7 +21,7 @@ class EmailSender:
             print(f"Error al conectar: {str(e)}")
             return None
 
-    def enviar_correo(self, destinatario, asunto, mensaje):
+    def enviar_correo(self, destinatario, asunto, mensaje, html=False):
         """
         Envía un correo electrónico
         
@@ -29,6 +29,7 @@ class EmailSender:
             destinatario (str): Dirección de correo del destinatario
             asunto (str): Asunto del correo
             mensaje (str): Contenido del correo
+            html (bool): Indica si el mensaje es en formato HTML
         """
         try:
             # Crear el objeto del mensaje
@@ -38,7 +39,10 @@ class EmailSender:
             email_msg['Subject'] = asunto
 
             # Agregar el cuerpo del mensaje
-            email_msg.attach(MIMEText(mensaje, 'plain'))
+            if html:
+                email_msg.attach(MIMEText(mensaje, 'html'))
+            else:
+                email_msg.attach(MIMEText(mensaje, 'plain'))
 
             # Conectar y enviar
             servidor = self.conectar_servidor()

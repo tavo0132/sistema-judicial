@@ -35,6 +35,8 @@ def scrape_proceso(driver, numero_radicado):
         "despacho_departamento": None,
         "sujetos_procesales": None,
     }
+    correo_enviado = None
+    mensaje_log = ""
     try:
         driver.get("https://consultaprocesos.ramajudicial.gov.co/Procesos/NumeroRadicacion")
         input_field = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='text']")))
@@ -55,44 +57,80 @@ def scrape_proceso(driver, numero_radicado):
                     resultado["fecha_ultima_actuacion"] = fechas[1]
                 resultado["despacho_departamento"] = celdas[3].text.strip()
                 resultado["sujetos_procesales"] = celdas[4].text.strip().replace('\n', ' | ')
+        # Ejemplo de extracción de demandante y demandado (ajusta según tu lógica real)
+        demandante = ""
+        demandado = ""
+        for linea in tabla.text.split('\n'):
+            if linea.startswith("Demandante:"):
+                demandante = linea.replace("Demandante:", "").strip()
+            if linea.startswith("Demandado:"):
+                demandado = linea.replace("Demandado:", "").strip()
+
         print(tabla.text)
         fecha_reciente = obtener_fecha_actuacion_reciente(tabla.text)
+        correo_cliente = None
         if fecha_reciente:
             try:
                 radicacion = Radicacion.objects.get(numero_radicado=numero_radicado)
                 correo_cliente = radicacion.cliente.email
+                nombre_cliente = radicacion.cliente.first_name  # <-- Aquí obtienes el nombre
             except Exception as e:
-                print(f"No se pudo obtener el correo del cliente: {e}")
-                correo_cliente = None
-
+                mensaje_log = f"No se pudo obtener el correo del cliente: {e}"
+                nombre_cliente = ""
             if correo_cliente:
                 asunto = f"Actualización Proceso Judicial - {numero_radicado}"
                 mensaje = f"""
-                Hola,
-
-                Se ha registrado una actuación reciente en su proceso judicial.
-
-                Número de radicado: {numero_radicado}
-                Fecha de actuación: {fecha_reciente}
-
-                Consulte el sistema para más detalles.
-
-                Saludos,
-                Sistema Judicial
+                <html>
+                <body>
+                    <p>Hola, <b>{nombre_cliente}</b></p>
+                    <h2 style="color:#1a237e;">Consulta Proceso Judicial</h2>
+                    <b>Información del Proceso</b><br>
+                    <b>Radicación:</b> {numero_radicado}<br>
+                    <b>Despacho:</b> {resultado.get("despacho_departamento", "")}<br>
+                    <b>Demandante:</b> {demandante}<br>
+                    <b>Demandado:</b> {demandado}<br>
+                    <b>Fecha de radicado:</b> {resultado.get("fecha_radicado", "")}<br>
+                    <b>Última actuación:</b> {fecha_reciente}<br>
+                    <hr>
+                    <p style="color:green;"><b>¡Se ha registrado una actuación reciente en su proceso judicial!</b></p>
+                    <p>Consulte el sistema para más detalles.</p>
+                    <br>
+                    <p>Saludos,<br><b>Sistema Judicial</b></p>
+                    <small>Este es un mensaje automático, no responda a este correo.</small>
+                </body>
+                </html>
                 """
-                sender.enviar_correo(correo_cliente, asunto, mensaje)
+                correo_enviado = sender.enviar_correo(correo_cliente, asunto, mensaje, html=True)
+        else:
+            mensaje_log = "No se encontró actuación reciente."
     except Exception as e:
-        print(f"Error procesando {numero_radicado}: {str(e)}")
+        mensaje_log = f"Error procesando {numero_radicado}: {str(e)}"
+
+    # Logging detallado
+    datos_log = {
+        "fecha_consulta": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "numero_radicado": numero_radicado,
+        "fecha_radicado": resultado.get("fecha_radicado"),
+        "fecha_ultima_actuacion": resultado.get("fecha_ultima_actuacion"),
+        "despacho": resultado.get("despacho_departamento"),
+        "demandante": demandante,
+        "demandado": demandado,
+        "actuacion_reciente": fecha_reciente if fecha_reciente else "No",
+        "correo_cliente": correo_cliente,
+        "correo_enviado": correo_enviado,
+        "mensaje": mensaje_log
+    }
+    log_scraping(datos_log)
     return resultado
 
-def log_scraping(mensaje):
+def log_scraping(datos_log):
     log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs_scraper_colombia")
     os.makedirs(log_dir, exist_ok=True)
     now = time.strftime("%d-%m-%Y_%H.%M")
     log_filename = f"scraping_log_{now}.txt"
     log_path = os.path.join(log_dir, log_filename)
     with open(log_path, "a", encoding="utf-8") as f:
-        f.write(mensaje + "\n")
+        f.write(json.dumps(datos_log, ensure_ascii=False) + "\n")
 
 def main():
     # Obtiene todos los números de radicado desde la base de datos
