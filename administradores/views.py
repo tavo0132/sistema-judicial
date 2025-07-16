@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Administrador, LogAccesoAdministrador
+from .models import Administrador, LogAccesoAdministrador, ConsultaProgramada
 from .forms import AdminLoginForm
 from clientes.models import Cliente, Radicacion
 from django.db.models import Count
@@ -63,9 +63,13 @@ def admin_dashboard(request):
     # Obtener las últimas 10 radicaciones
     ultimas_radicaciones = Radicacion.objects.all().order_by('-fecha_radicacion')[:10]
     
+    # Obtener la última consulta programada
+    ultima_consulta = ConsultaProgramada.objects.last()
+    
     context = {
         'clientes': clientes,
         'ultimas_radicaciones': ultimas_radicaciones,
+        'ultima_consulta': ultima_consulta,
     }
     
     return render(request, 'administradores/dashboard.html', context)
@@ -95,4 +99,14 @@ def iniciar_scraping(request):
         except subprocess.CalledProcessError as e:
             messages.error(request, f"Ocurrió un error al ejecutar los scripts: {e}")
         return redirect('admin_dashboard')
+    return redirect('admin_dashboard')
+
+def programar_consulta(request):
+    if request.method == 'POST':
+        hora = request.POST.get('hora_consulta')
+        if hora:
+            ConsultaProgramada.objects.create(hora=hora)
+            messages.success(request, f'Consulta programada para las {hora}.')
+        else:
+            messages.error(request, 'Debe ingresar una hora válida.')
     return redirect('admin_dashboard')

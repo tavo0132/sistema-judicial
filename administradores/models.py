@@ -30,3 +30,10 @@ class LogAccesoAdministrador(models.Model):
 
     def __str__(self):
         return f"{self.administrador} - {self.fecha_hora}"
+
+class ConsultaProgramada(models.Model):
+    hora = models.TimeField()
+    fecha = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.hora}"

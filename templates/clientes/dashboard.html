@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% block title %}Dashboard Cliente{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row">
@@ -52,18 +54,19 @@
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h3>Mis Radicaciones</h3>
+                        <h3 class="mb-4">Mis Radicaciones</h3>
                         <a href="{% url 'crear_radicacion' cliente.id %}" class="btn btn-primary">Nueva Radicación</a>
                     </div>
-                    
-                    {% if radicaciones %}
                     <div class="table-responsive">
                         <table class="table table-striped">
                             <thead>
                                 <tr>
-                                    <th>Número de Radicado</th>
-                                    <th>Fecha</th>
+                                    <th>Número Radicado</th>
+                                    <th>Fecha de Radicación</th>
+                                    <th>Última Actuación</th>
                                     <th>Estado</th>
+                                    <th>Despacho y Departamento</th>
+                                    <th>Sujetos Procesales</th>
                                     <th>Proceso Consultado</th>
                                 </tr>
                             </thead>
@@ -71,17 +74,21 @@
                                 {% for radicacion in radicaciones %}
                                 <tr>
                                     <td>{{ radicacion.numero_radicado }}</td>
-                                    <td>{{ radicacion.fecha_radicado|date:"d/m/Y" }}</td>
+                                    <td>{{ radicacion.fecha_radicacion|date:"Y-m-d" }}</td>
+                                    <td>{{ radicacion.ultima_actuacion|date:"Y-m-d" }}</td>
                                     <td>{{ radicacion.estado_radicado }}</td>
+                                    <td>{{ radicacion.despacho_departamento }}</td>
+                                    <td>{{ radicacion.sujetos_procesales }}</td>
                                     <td>{{ radicacion.proceso_consultado }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center">No hay radicaciones registradas</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    {% else %}
-                    <p class="text-center">No hay radicaciones registradas.</p>
-                    {% endif %}
                 </div>
             </div>
         </div>

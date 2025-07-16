@@ -19,6 +19,27 @@
 <div class="container mt-4">
     <h2 class="mb-4">Panel de Administración</h2>
     
+    <!-- Botón alineado a la izquierda debajo del título -->
+    <form action="{% url 'iniciar_scraping' %}" method="post" class="mb-4">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">Iniciar Consulta de Procesos</button>
+    </form>
+
+    <form action="{% url 'programar_consulta' %}" method="post" class="mb-4" style="max-width:350px;">
+        {% csrf_token %}
+        <div class="input-group">
+            <input type="time" name="hora_consulta" class="form-control" required>
+            <button type="submit" class="btn btn-warning btn-sm ms-2">Programar Consulta de Procesos</button>
+        </div>
+        <small class="form-text text-muted">Ingrese la hora en formato 24 horas (ejemplo: 14:30).</small>
+    </form>
+
+    {% if ultima_consulta %}
+    <div class="alert alert-info">
+        Última consulta programada: {{ ultima_consulta.hora }}
+    </div>
+    {% endif %}
+
     {% if messages %}
     <div class="messages mb-4">
         {% for message in messages %}
@@ -100,8 +121,11 @@
                         <tr>
                             <th>Cliente</th>
                             <th>Número Radicado</th>
-                            <th>Fecha</th>
+                            <th>Fecha de Radicación</th>
+                            <th>Última Actuación</th>
                             <th>Estado</th>
+                            <th>Despacho/Departamento</th>
+                            <th>Sujetos Procesales</th>
                             <th>Proceso Consultado</th>
                         </tr>
                     </thead>
@@ -110,17 +134,20 @@
                         <tr>
                             <td>{{ radicacion.cliente.nombres }} {{ radicacion.cliente.apellidos }}</td>
                             <td>{{ radicacion.numero_radicado }}</td>
-                            <td>{{ radicacion.fecha_radicado|date:"d/m/Y" }}</td>
+                            <td>{{ radicacion.fecha_radicacion|date:"Y-m-d" }}</td>
+                            <td>{{ radicacion.ultima_actuacion|date:"Y-m-d" }}</td>
                             <td>
-                                <span class="badge {% if radicacion.estado_radicado == 'Abierto' %}bg-success{% else %}bg-secondary{% endif %}">
+                                <span class="badge {% if radicacion.estado_radicado == 'abierto' %}bg-success{% else %}bg-secondary{% endif %}">
                                     {{ radicacion.estado_radicado }}
                                 </span>
                             </td>
+                            <td>{{ radicacion.despacho_departamento }}</td>
+                            <td>{{ radicacion.sujetos_procesales }}</td>
                             <td>{{ radicacion.proceso_consultado }}</td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="text-center">No hay radicaciones registradas</td>
+                            <td colspan="8" class="text-center">No hay radicaciones registradas</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -128,10 +155,5 @@
             </div>
         </div>
     </div>
-
-    <form action="{% url 'iniciar_scraping' %}" method="post" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-success mb-3">Iniciar Consulta de Procesos</button>
-    </form>
 </div>
 {% endblock %}
