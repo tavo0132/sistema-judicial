@@ -1,0 +1,32 @@
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Número de Radicado</th>
+            <th>Fecha de Radicación</th>
+            <th>Última actuación</th> <!-- Nueva columna -->
+            <th>Estado</th>
+            <th>Proceso Consultado</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for radicacion in radicaciones %}
+        <tr>
+            <td>{{ radicacion.numero_radicado }}</td>
+            <td>{{ radicacion.fecha_radicacion|default:"--" }}</td>
+            <td>{{ radicacion.ultima_actuacion|default:"--" }}</td> <!-- Mostrar última actuación -->
+            <td>
+                <span class="badge {% if radicacion.estado == 'abierto' %}bg-success{% else %}bg-secondary{% endif %}">
+                    {{ radicacion.get_estado_display }}
+                </span>
+            </td>
+            <td>
+                {% if radicacion.proceso_consultado %}
+                    <span class="text-success">Sí</span>
+                {% else %}
+                    <span class="text-danger">No</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

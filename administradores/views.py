@@ -61,7 +61,7 @@ def admin_dashboard(request):
     clientes = Cliente.objects.all().order_by('-fecha_registro')
     
     # Obtener las últimas 10 radicaciones
-    ultimas_radicaciones = Radicacion.objects.all().order_by('-fecha_radicado')[:10]
+    ultimas_radicaciones = Radicacion.objects.all().order_by('-fecha_radicacion')[:10]
     
     context = {
         'clientes': clientes,

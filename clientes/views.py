@@ -147,7 +147,7 @@ def crear_radicacion(request, cliente_id):
                 cliente=cliente,
                 numero_radicado=numero_radicado,
                 proceso_consultado=proceso_consultado,
-                fecha_radicado=timezone.now(),
+                fecha_radicacion=timezone.now(),  # <--- CAMBIO AQUÍ
                 estado_radicado='Abierto',
             )
             messages.success(request, 'Radicación creada exitosamente.')
@@ -170,7 +170,7 @@ def cliente_dashboard(request):
     cliente_id = request.session['cliente_id']
     try:
         cliente = Cliente.objects.get(id=cliente_id)
-        radicaciones = Radicacion.objects.filter(cliente=cliente).order_by('-fecha_radicado')
+        radicaciones = Radicacion.objects.filter(cliente=cliente).order_by('-fecha_radicacion')  # <--- CAMBIO AQUÍ
         notificaciones = Notificacion.objects.filter(
             cliente=cliente,
             es_para_admin=False
@@ -185,6 +185,19 @@ def cliente_dashboard(request):
     except Cliente.DoesNotExist:
         messages.error(request, 'Cliente no encontrado')
         return redirect('cliente_login')
+
+def dashboard_cliente(request):
+    if request.user.is_authenticated:
+        try:
+            cliente = Cliente.objects.get(user=request.user)
+            radicaciones = Radicacion.objects.filter(cliente=cliente).order_by('-fecha_creacion')
+            return render(request, 'clientes/dashboard.html', {
+                'cliente': cliente,
+                'radicaciones': radicaciones
+            })
+        except Cliente.DoesNotExist:
+            return redirect('clientes:registro')
+    return redirect('clientes:login')
 
 @login_required
 def eliminar_radicacion(request, radicacion_id):

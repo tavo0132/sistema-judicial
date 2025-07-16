@@ -38,20 +38,25 @@ class Cliente(AbstractUser):
         return f"{self.first_name} {self.last_name}"
 
 class Radicacion(models.Model):
-    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, db_column='id_cliente')
-    numero_radicado = models.CharField(max_length=50)
-    fecha_radicado = models.DateTimeField(default=timezone.now)
-    fecha_ultima_actuacion = models.DateTimeField(null=True, blank=True)  # <-- Nuevo campo
-    proceso_consultado = models.CharField(max_length=2, default='No')
-    estado_radicado = models.CharField(max_length=20, default='Abierto')
-    despacho_departamento = models.CharField(max_length=200, blank=True, null=True)
-    sujetos_procesales = models.TextField(blank=True, null=True)
-
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
+    numero_radicado = models.CharField(max_length=50, unique=True)
+    fecha_radicacion = models.DateField(blank=True, null=True)
+    ultima_actuacion = models.DateField(blank=True, null=True)  # Nuevo campo
+    estado_radicado = models.CharField(max_length=20, default='abierto')
+    PROCESO_CONSULTADO_CHOICES = [
+        ('Sí', 'Sí'),
+        ('No', 'No'),
+    ]
+    proceso_consultado = models.CharField(max_length=5, choices=PROCESO_CONSULTADO_CHOICES, default='No')
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    despacho_departamento = models.CharField(max_length=255, null=True, blank=True)
+    sujetos_procesales = models.CharField(max_length=500, null=True, blank=True)
+    
     class Meta:
         db_table = 'radicaciones'
 
     def __str__(self):
-        return f"Radicación {self.numero_radicado} - {self.cliente}"
+        return f"{self.numero_radicado} - {self.cliente}"
 
 class Notificacion(models.Model):
     tipo = models.CharField(max_length=50)

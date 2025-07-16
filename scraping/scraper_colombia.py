@@ -148,6 +148,19 @@ def main():
             datos = scrape_proceso(driver, numero_radicado)
             resultados.append(datos)
             log_scraping(f"Datos extraídos para {numero_radicado}: {datos}")
+            
+            # --- AJUSTE PARA GUARDAR FECHAS EN LA BD ---
+            try:
+                radicacion = Radicacion.objects.get(numero_radicado=numero_radicado)
+                radicacion.fecha_radicacion = datos.get('fecha_radicado')
+                radicacion.ultima_actuacion = datos.get('fecha_ultima_actuacion')
+                radicacion.despacho_departamento = datos.get('despacho_departamento')
+                radicacion.sujetos_procesales = datos.get('sujetos_procesales')
+                radicacion.save()
+            except Exception as e:
+                print(f"Error actualizando radicación {numero_radicado}: {e}")
+            # -------------------------------------------
+            
             time.sleep(3)
     finally:
         driver.quit()
