@@ -6,16 +6,32 @@ echo.
 echo Iniciando todos los servicios necesarios...
 echo.
 
-REM Verificar si Redis/Memurai está corriendo
+REM Verificar e iniciar Redis/Memurai automáticamente
 echo [1/5] Verificando Redis/Memurai...
 tasklist /FI "IMAGENAME eq memurai.exe" 2>NUL | find /I /N "memurai.exe">NUL
 if "%ERRORLEVEL%"=="0" (
     echo ✓ Redis/Memurai ya está corriendo
 ) else (
-    echo ⚠ Redis/Memurai no está corriendo
-    echo   Por favor, inicia Redis/Memurai manualmente
-    echo   Ubicación típica: C:\Program Files\Memurai\memurai.exe
-    pause
+    echo ⚠ Redis/Memurai no está corriendo - Iniciando automáticamente...
+    
+    REM Intentar iniciar como servicio primero
+    net start memurai 2>nul
+    if "%ERRORLEVEL%"=="0" (
+        echo ✓ Memurai iniciado como servicio
+    ) else (
+        echo ⚠ Servicio no disponible - Intentando ejecutable...
+        
+        REM Intentar iniciar ejecutable en segundo plano
+        if exist "C:\Program Files\Memurai\memurai.exe" (
+            start /MIN "Memurai Server" "C:\Program Files\Memurai\memurai.exe"
+            timeout /t 3 /nobreak > nul
+            echo ✓ Memurai iniciado como proceso
+        ) else (
+            echo ✗ Error: No se pudo encontrar Memurai
+            echo   Instala Memurai o inicia Redis manualmente
+            pause
+        )
+    )
 )
 
 echo.
@@ -34,9 +50,9 @@ echo [3/5] Iniciando Celery Beat (Programador)...
 start "Celery Beat" cmd /k "cd /d "%~dp0" && venv\Scripts\activate && python -m celery -A sistema_judicial beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
 
 echo.
-echo [4/5] Iniciando Celery Worker...
+echo [4/5] Iniciando Celery Worker (Configuración Windows)...
 timeout /t 3 /nobreak > nul
-start "Celery Worker" cmd /k "cd /d "%~dp0" && venv\Scripts\activate && python -m celery -A sistema_judicial worker -l info"
+start "Celery Worker" cmd /k "cd /d "%~dp0" && venv\Scripts\activate && python -m celery -A sistema_judicial worker --loglevel=info --pool=solo --concurrency=1"
 
 echo.
 echo [5/5] Iniciando Servidor Django...
