@@ -7,4 +7,7 @@ urlpatterns = [
     path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('iniciar-scraping/', views.iniciar_scraping, name='iniciar_scraping'),
     path('programar-consulta/', views.programar_consulta, name='programar_consulta'),
+    path('cancelar-programacion/', views.cancelar_programacion, name='cancelar_programacion'),
+    path('gestionar-slot/', views.gestionar_slot, name='gestionar_slot'),
+    path('desactivar-todos-slots/', views.desactivar_todos_slots, name='desactivar_todos_slots'),
 ]

@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'clientes',
     'administradores',
     'scraping',
-    'django_celery_beat',  # Agregar esta línea
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
@@ -122,7 +122,7 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'America/Bogota'
-USE_TZ = False
+USE_TZ = True  # Cambiado a True para usar zonas horarias aware
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
@@ -146,3 +146,26 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'America/Bogota'  # Tu zona horaria
+CELERY_ENABLE_UTC = True  # Asegurar que use UTC internamente
+CELERY_RESULT_EXPIRES = 3600
+
+# Configuración de Celery Beat (Programador de tareas)
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'scraping-diario-7am': {
+        'task': 'scraping.tasks.ejecutar_scraping',
+        'schedule': crontab(hour=7, minute=0),  # Ejecutar todos los días a las 7:00 AM (configuración por defecto)
+    },
+    'scraping-cada-6-horas': {
+        'task': 'scraping.tasks.ejecutar_scraping',
+        'schedule': crontab(minute=0, hour='*/6'),  # Ejecutar cada 6 horas (como respaldo)
+    },
+    'tarea-prueba-cada-5-minutos': {
+        'task': 'clientes.tasks.tarea_prueba',
+        'schedule': crontab(minute='*/5'),  # Ejecutar cada 5 minutos (solo para pruebas - puedes deshabilitar después)
+    },
+}
+
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'

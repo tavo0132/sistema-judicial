@@ -37,3 +37,32 @@ class ConsultaProgramada(models.Model):
 
     def __str__(self):
         return f"{self.hora}"
+
+class ProgramacionMultiple(models.Model):
+    """
+    Modelo para manejar múltiples horarios de programación
+    """
+    SLOTS = [
+        ('slot1', 'Horario 1'),
+        ('slot2', 'Horario 2'), 
+        ('slot3', 'Horario 3'),
+    ]
+    
+    slot = models.CharField(max_length=10, choices=SLOTS, unique=True)
+    hora = models.TimeField()
+    activo = models.BooleanField(default=False)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Programación Múltiple"
+        verbose_name_plural = "Programaciones Múltiples"
+        ordering = ['slot']
+    
+    def __str__(self):
+        estado = "Activo" if self.activo else "Inactivo"
+        return f"{self.get_slot_display()}: {self.hora} ({estado})"
+    
+    def get_task_name(self):
+        """Genera un nombre único para la tarea de Celery"""
+        return f"consulta-procesos-{self.slot}"

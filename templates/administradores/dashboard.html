@@ -2,6 +2,23 @@
 
 {% block title %}Dashboard Administrador{% endblock %}
 
+{% block extra_css %}
+<style>
+.bg-light-success {
+    background-color: #d1edff !important;
+    border-left: 4px solid #28a745;
+}
+.bg-light {
+    background-color: #f8f9fa !important;
+    border-left: 4px solid #6c757d;
+}
+.slot-container:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: box-shadow 0.3s ease;
+}
+</style>
+{% endblock %}
+
 {% block navigation %}
 <div class="collapse navbar-collapse" id="navbarNav">
     <ul class="navbar-nav ms-auto">
@@ -19,26 +36,147 @@
 <div class="container mt-4">
     <h2 class="mb-4">Panel de Administración</h2>
     
-    <!-- Botón alineado a la izquierda debajo del título -->
+    <!-- Botón para ejecutar consulta manual -->
     <form action="{% url 'iniciar_scraping' %}" method="post" class="mb-4">
         {% csrf_token %}
         <button type="submit" class="btn btn-success">Iniciar Consulta de Procesos</button>
     </form>
 
-    <form action="{% url 'programar_consulta' %}" method="post" class="mb-4" style="max-width:350px;">
-        {% csrf_token %}
-        <div class="input-group">
-            <input type="time" name="hora_consulta" class="form-control" required>
-            <button type="submit" class="btn btn-warning btn-sm ms-2">Programar Consulta de Procesos</button>
+    <!-- Nueva Sección de Programación Múltiple -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">📅 Programación Automática de Consultas</h5>
+            {% if slots_data %}
+            <form action="{% url 'desactivar_todos_slots' %}" method="post" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Desactivar todas las programaciones?')">
+                    ❌ Desactivar Todas
+                </button>
+            </form>
+            {% endif %}
         </div>
-        <small class="form-text text-muted">Ingrese la hora en formato 24 horas (ejemplo: 14:30).</small>
-    </form>
-
-    {% if ultima_consulta %}
-    <div class="alert alert-info">
-        Última consulta programada: {{ ultima_consulta.hora }}
+        <div class="card-body">
+            {% if slots_data %}
+            <!-- Sistema Nuevo de 3 Slots -->
+            {% for slot_data in slots_data %}
+            <div class="border rounded p-3 mb-3 slot-container {% if slot_data.programacion.activo and slot_data.celery_activa %}bg-light-success{% else %}bg-light{% endif %}">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <h6 class="mb-1">
+                            🕰️ {{ slot_data.programacion.get_slot_display }}
+                        </h6>
+                        <small class="text-muted">Slot {{ slot_data.slot_number }}</small>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <form action="{% url 'gestionar_slot' %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="slot_id" value="{{ slot_data.programacion.slot }}">
+                            <input type="hidden" name="accion" value="actualizar_hora">
+                            <div class="input-group input-group-sm">
+                                <input type="time" name="nueva_hora" class="form-control" 
+                                       value="{{ slot_data.programacion.hora|time:'H:i' }}" required>
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                    💾 Guardar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        {% if slot_data.programacion.activo and slot_data.celery_activa %}
+                            <span class="badge bg-success">✅ ACTIVO</span>
+                            <small class="d-block text-success">Ejecutándose diariamente</small>
+                        {% elif slot_data.programacion.activo and not slot_data.celery_activa %}
+                            <span class="badge bg-warning">⚠️ PARCIAL</span>
+                            <small class="d-block text-warning">Activo pero no en Celery</small>
+                        {% else %}
+                            <span class="badge bg-secondary">⭕ INACTIVO</span>
+                            <small class="d-block text-muted">No programado</small>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-3 text-end">
+                        {% if slot_data.programacion.activo %}
+                            <form action="{% url 'gestionar_slot' %}" method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="slot_id" value="{{ slot_data.programacion.slot }}">
+                                <input type="hidden" name="accion" value="desactivar">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    🔴 Desactivar
+                                </button>
+                            </form>
+                        {% else %}
+                            <form action="{% url 'gestionar_slot' %}" method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="slot_id" value="{{ slot_data.programacion.slot }}">
+                                <input type="hidden" name="accion" value="activar">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    🟢 Activar
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <div class="alert alert-info mt-3">
+                <strong>💡 Instrucciones:</strong>
+                <ul class="mb-0 mt-2">
+                    <li><strong>Configurar hora:</strong> Cambia la hora y presiona "💾 Guardar"</li>
+                    <li><strong>Activar slot:</strong> Presiona "🟢 Activar" para programar la ejecución automática</li>
+                    <li><strong>Desactivar slot:</strong> Presiona "🔴 Desactivar" para detener la programación</li>
+                    <li><strong>Estado ACTIVO:</strong> ✅ El slot se ejecutará automáticamente todos los días</li>
+                </ul>
+            </div>
+            
+            {% elif tarea_activa %}
+            <!-- Sistema Antiguo como Fallback -->
+            <div class="alert alert-success">
+                <strong>✅ Consulta Programada Activa</strong><br>
+                Se ejecutará automáticamente todos los días a las <strong>{{ tarea_activa.hora }}</strong>
+            </div>
+            <form action="{% url 'cancelar_programacion' %}" method="post" class="mb-3">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">Cancelar Programación</button>
+            </form>
+            
+            <form action="{% url 'programar_consulta' %}" method="post" style="max-width:400px;">
+                {% csrf_token %}
+                <label for="hora_consulta" class="form-label">Programar nueva consulta diaria:</label>
+                <div class="input-group">
+                    <input type="time" name="hora_consulta" class="form-control" required 
+                           value="07:00" title="Hora recomendada: 07:00">
+                    <button type="submit" class="btn btn-warning">Programar Consulta Diaria</button>
+                </div>
+                <small class="form-text text-muted">
+                    La consulta se ejecutará automáticamente todos los días a la hora especificada.
+                </small>
+            </form>
+            
+            {% else %}
+            <!-- No hay programaciones -->
+            <div class="alert alert-warning">
+                <strong>⚠️ No hay consultas programadas</strong><br>
+                Configure una hora para que la consulta se ejecute automáticamente todos los días.
+            </div>
+            
+            <form action="{% url 'programar_consulta' %}" method="post" style="max-width:400px;">
+                {% csrf_token %}
+                <label for="hora_consulta" class="form-label">Programar nueva consulta diaria:</label>
+                <div class="input-group">
+                    <input type="time" name="hora_consulta" class="form-control" required 
+                           value="07:00" title="Hora recomendada: 07:00">
+                    <button type="submit" class="btn btn-warning">Programar Consulta Diaria</button>
+                </div>
+                <small class="form-text text-muted">
+                    La consulta se ejecutará automáticamente todos los días a la hora especificada.
+                </small>
+            </form>
+            {% endif %}
+        </div>
     </div>
-    {% endif %}
 
     {% if messages %}
     <div class="messages mb-4">
