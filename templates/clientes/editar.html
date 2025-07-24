@@ -10,10 +10,11 @@
                 </div>
                 <div class="card-body">
                     {% if messages %}
-                    <div class="messages">
+                    <div class="messages mb-3">
                         {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }}">
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
                             {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                         {% endfor %}
                     </div>
@@ -24,24 +25,24 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
-                                    <label for="nombres">Nombres</label>
-                                    <input type="text" class="form-control" id="nombres" name="nombres" value="{{ cliente.nombres }}" required>
+                                    <label for="first_name">Nombres</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" value="{{ cliente.first_name }}" required>
                                 </div>
                                 <div class="form-group mb-3">
-                                    <label for="apellidos">Apellidos</label>
-                                    <input type="text" class="form-control" id="apellidos" name="apellidos" value="{{ cliente.apellidos }}" required>
+                                    <label for="last_name">Apellidos</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" value="{{ cliente.last_name }}" required>
                                 </div>
                                 <div class="form-group mb-3">
                                     <label for="cedula">Cédula</label>
                                     <input type="text" class="form-control" id="cedula" name="cedula" value="{{ cliente.cedula }}" required>
                                 </div>
                                 <div class="form-group mb-3">
-                                    <label for="correo_electronico">Correo Electrónico</label>
-                                    <input type="email" class="form-control" id="correo_electronico" name="correo_electronico" value="{{ cliente.correo_electronico }}" required>
+                                    <label for="email">Correo Electrónico</label>
+                                    <input type="email" class="form-control" id="email" name="email" value="{{ cliente.email }}" required>
                                 </div>
                                 <div class="form-group mb-3">
-                                    <label for="contrasena">Nueva Contraseña (dejar en blanco para mantener la actual)</label>
-                                    <input type="password" class="form-control" id="contrasena" name="contrasena">
+                                    <label for="password">Nueva Contraseña (dejar en blanco para mantener la actual)</label>
+                                    <input type="password" class="form-control" id="password" name="password">
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -50,29 +51,34 @@
                                     <input type="text" class="form-control" id="numero_telefono" name="numero_telefono" value="{{ cliente.numero_telefono }}" required>
                                 </div>
                                 <div class="form-group mb-3">
-                                    <label for="direccion">Dirección</label>
-                                    <input type="text" class="form-control" id="direccion" name="direccion" value="{{ cliente.direccion }}">
-                                </div>
-                                <div class="form-group mb-3">
                                     <label for="ciudad">Ciudad</label>
                                     <input type="text" class="form-control" id="ciudad" name="ciudad" value="{{ cliente.ciudad }}" required>
                                 </div>
                                 <div class="form-group mb-3">
-                                    <label for="estado_cliente">Estado del Cliente</label>
-                                    <select class="form-control" id="estado_cliente" name="estado_cliente">
-                                        <option value="Activo" {% if cliente.estado_cliente == 'Activo' %}selected{% endif %}>Activo</option>
-                                        <option value="Inactivo" {% if cliente.estado_cliente == 'Inactivo' %}selected{% endif %}>Inactivo</option>
+                                    <label for="pais">País</label>
+                                    <select class="form-control" id="pais" name="pais" required>
+                                        <option value="">Seleccione un país</option>
+                                        <option value="EC" {% if cliente.pais == 'EC' %}selected{% endif %}>Ecuador</option>
+                                        <option value="CO" {% if cliente.pais == 'CO' %}selected{% endif %}>Colombia</option>
+                                        <option value="PE" {% if cliente.pais == 'PE' %}selected{% endif %}>Perú</option>
+                                        <option value="VE" {% if cliente.pais == 'VE' %}selected{% endif %}>Venezuela</option>
+                                        <option value="BO" {% if cliente.pais == 'BO' %}selected{% endif %}>Bolivia</option>
+                                        <option value="PY" {% if cliente.pais == 'PY' %}selected{% endif %}>Paraguay</option>
+                                        <option value="CL" {% if cliente.pais == 'CL' %}selected{% endif %}>Chile</option>
+                                        <option value="AR" {% if cliente.pais == 'AR' %}selected{% endif %}>Argentina</option>
+                                        <option value="UY" {% if cliente.pais == 'UY' %}selected{% endif %}>Uruguay</option>
+                                        <option value="BR" {% if cliente.pais == 'BR' %}selected{% endif %}>Brasil</option>
                                     </select>
                                 </div>
                                 <div class="form-group mb-3">
                                     <label>Fecha de Registro</label>
-                                    <input type="text" class="form-control" value="{{ cliente.fecha_registro|date:'d/m/Y H:i' }}" readonly>
+                                    <input type="text" class="form-control" value="{{ cliente.date_joined|date:'d/m/Y H:i' }}" readonly>
                                 </div>
                             </div>
                         </div>
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">Actualizar Cliente</button>
-                            <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">Cancelar</a>
+                            <a href="{% url 'cliente_dashboard' %}" class="btn btn-secondary">Cancelar</a>
                         </div>
                     </form>
                 </div>

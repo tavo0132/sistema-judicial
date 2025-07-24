@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.db.utils import IntegrityError
+from django.db.models import Q
 from .models import Cliente, Radicacion, LogAccesoCliente, Notificacion
 from .utils import crear_notificacion
 
@@ -12,8 +14,11 @@ def cliente_login(request):
         correo = request.POST.get('correo_electronico')
         contrasena = request.POST.get('contrasena')
         try:
-            cliente = Cliente.objects.get(email=correo)  # Cambiado aquí
-            if cliente.check_password(contrasena):
+            # Solo permitir login a clientes NO eliminados
+            cliente = Cliente.objects.get(email=correo, is_deleted=False)
+            if cliente.estado_cliente == 'Inactivo':
+                messages.error(request, 'Su usuario se encuentra Inactivo, para mayor información por favor ponerse en contacto con el Administrador del sistema')
+            elif cliente.check_password(contrasena):
                 # Actualiza la última sesión
                 cliente.ultima_sesion = timezone.now()
                 cliente.save()
@@ -24,7 +29,7 @@ def cliente_login(request):
                     ip=request.META.get('REMOTE_ADDR')
                 )
 
-                request.session['cliente_id'] = cliente.id  # Cambiado aquí
+                request.session['cliente_id'] = cliente.id
                 return redirect('cliente_dashboard')
             else:
                 messages.error(request, 'Contraseña incorrecta')
@@ -34,6 +39,7 @@ def cliente_login(request):
     return render(request, 'clientes/login.html')
 
 def registrar_cliente(request):
+    restaurar_cliente_id = request.POST.get('restaurar_cliente_id')
     if request.method == 'POST':
         first_name = request.POST.get('nombres')
         last_name = request.POST.get('apellidos')
@@ -41,27 +47,78 @@ def registrar_cliente(request):
         email = request.POST.get('correo_electronico')
         password = request.POST.get('contrasena')
         numero_telefono = request.POST.get('numero_telefono')
-        direccion = request.POST.get('direccion')
+        ciudad = request.POST.get('ciudad')
         estado_cliente = request.POST.get('estado_cliente', 'Activo')
         pais = request.POST.get('pais', 'Colombia')
-        
+
+        # Si se está confirmando restauración
+        if restaurar_cliente_id:
+            cliente = Cliente.objects.get(id=restaurar_cliente_id)
+            cliente.is_deleted = False
+            cliente.deleted_at = None
+            cliente.deleted_by_id = None
+            cliente.first_name = first_name
+            cliente.last_name = last_name
+            cliente.cedula = cedula
+            cliente.email = email
+            cliente.numero_telefono = numero_telefono
+            cliente.ciudad = ciudad
+            cliente.estado_cliente = estado_cliente
+            cliente.pais = pais
+            cliente.fecha_registro = timezone.now()
+            cliente.set_password(password)
+            cliente.save()
+
+            crear_notificacion(
+                tipo='nuevo_cliente',
+                titulo='Cliente restaurado',
+                mensaje=f'Se ha restaurado y actualizado el cliente: {first_name} {last_name}',
+                es_para_admin=True,
+                url_relacionada='/administradores/clientes/'
+            )
+            messages.success(request, 'Cliente restaurado y actualizado exitosamente')
+            return redirect('cliente_login')
+
+        # Buscar si existe cliente eliminado con mismo correo/cédula
+        cliente_eliminado = Cliente.objects.filter(
+            (Q(email=email) | Q(cedula=cedula)),
+            is_deleted=True
+        ).first()
+        if cliente_eliminado:
+            # Mostrar opción de restaurar en la plantilla
+            context = {
+                'restaurar_cliente': cliente_eliminado,
+                'datos_nuevos': {
+                    'nombres': first_name,
+                    'apellidos': last_name,
+                    'cedula': cedula,
+                    'correo_electronico': email,
+                    'contrasena': password,
+                    'numero_telefono': numero_telefono,
+                    'ciudad': ciudad,
+                    'estado_cliente': estado_cliente,
+                    'pais': pais
+                }
+            }
+            messages.warning(request, 'Ya existe un cliente eliminado con estos datos. ¿Desea restaurarlo y reemplazar la información?')
+            return render(request, 'clientes/registrar.html', context)
+
         try:
             cliente = Cliente.objects.create(
+                username=f"cliente_{cedula}",
                 first_name=first_name,
                 last_name=last_name,
                 email=email,
                 cedula=cedula,
                 numero_telefono=numero_telefono,
-                direccion=direccion,
                 ciudad=ciudad,
                 estado_cliente=estado_cliente,
                 fecha_registro=timezone.now(),
-                pais=pais  # <-- Nuevo campo
+                pais=pais
             )
             cliente.set_password(password)
             cliente.save()
 
-            # Crear notificación para el administrador
             crear_notificacion(
                 tipo='nuevo_cliente',
                 titulo='Nuevo Cliente Registrado',
@@ -72,9 +129,17 @@ def registrar_cliente(request):
 
             messages.success(request, 'Cliente registrado exitosamente')
             return redirect('cliente_login')
+        except IntegrityError as e:
+            error_msg = str(e)
+            if 'email' in error_msg:
+                messages.error(request, 'Ya existe un cliente registrado con este correo electrónico.')
+            elif 'cedula' in error_msg:
+                messages.error(request, 'Ya existe un cliente registrado con esta cédula.')
+            else:
+                messages.error(request, 'Error: datos duplicados. Verifique el correo y la cédula.')
         except Exception as e:
             messages.error(request, f'Error al registrar cliente: {str(e)}')
-    
+
     return render(request, 'clientes/registrar.html')
 
 def editar_cliente(request, id_cliente):
@@ -86,7 +151,6 @@ def editar_cliente(request, id_cliente):
             cliente.cedula = request.POST.get('cedula')
             cliente.email = request.POST.get('correo_electronico')
             cliente.numero_telefono = request.POST.get('numero_telefono')
-            cliente.direccion = request.POST.get('direccion')
             cliente.ciudad = request.POST.get('ciudad')
             cliente.estado_cliente = request.POST.get('estado_cliente')
             
@@ -135,32 +199,43 @@ def crear_radicacion(request, cliente_id):
 
             if not numero_radicado:
                 messages.error(request, 'Debe ingresar el número de radicado.')
-                return render(request, 'clientes/crear_radicacion.html')
+                return render(request, 'clientes/crear_radicacion.html', {'cliente': cliente})
 
-            # Validar duplicado para este cliente
+            # Solo validar duplicado específico para este cliente
+            # (eliminamos la validación global para que diferentes clientes puedan tener el mismo número)
             if Radicacion.objects.filter(cliente=cliente, numero_radicado=numero_radicado).exists():
-                messages.warning(request, 'Su proceso judicial ya ha sido registrado.')
-                return redirect('ver_radicaciones_cliente', id_cliente=cliente_id)
+                messages.warning(request, 'Ya tiene registrado este número de radicado.')
+                return render(request, 'clientes/crear_radicacion.html', {'cliente': cliente})
 
-            # Crear la radicación si no existe
+            # Crear la radicación
             Radicacion.objects.create(
                 cliente=cliente,
                 numero_radicado=numero_radicado,
                 proceso_consultado=proceso_consultado,
-                fecha_radicacion=timezone.now(),  # <--- CAMBIO AQUÍ
+                fecha_radicacion=timezone.now().date(),
                 estado_radicado='Abierto',
             )
-            messages.success(request, 'Radicación creada exitosamente.')
+            messages.success(request, '¡Radicación creada con éxito!')
             return redirect('ver_radicaciones_cliente', id_cliente=cliente_id)
 
         except Cliente.DoesNotExist:
             messages.error(request, 'Cliente no encontrado.')
             return redirect('cliente_login')
+        except IntegrityError as e:
+            # Esta excepción solo se activará si el mismo cliente intenta registrar el mismo número dos veces
+            messages.warning(request, 'Ya tiene registrado este número de radicado.')
+            return render(request, 'clientes/crear_radicacion.html', {'cliente': cliente})
         except Exception as e:
             messages.error(request, f'Error al crear la radicación: {str(e)}')
-            return render(request, 'clientes/crear_radicacion.html')
+            return render(request, 'clientes/crear_radicacion.html', {'cliente': cliente})
 
-    return render(request, 'clientes/crear_radicacion.html')
+    # Para GET request, obtener el cliente y pasarlo al template
+    try:
+        cliente = Cliente.objects.get(id=cliente_id)
+        return render(request, 'clientes/crear_radicacion.html', {'cliente': cliente})
+    except Cliente.DoesNotExist:
+        messages.error(request, 'Cliente no encontrado.')
+        return redirect('cliente_login')
 
 def cliente_dashboard(request):
     if 'cliente_id' not in request.session:

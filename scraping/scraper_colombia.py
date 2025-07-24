@@ -68,45 +68,67 @@ def scrape_proceso(driver, numero_radicado):
 
         print(tabla.text)
         fecha_reciente = obtener_fecha_actuacion_reciente(tabla.text)
-        correo_cliente = None
+        correos_clientes = []
+        correo_enviado = False
+        mensaje_log = ""
+        
         if fecha_reciente:
             try:
-                radicacion = Radicacion.objects.get(numero_radicado=numero_radicado)
-                correo_cliente = radicacion.cliente.email
-                nombre_cliente = radicacion.cliente.first_name  # <-- Aquí obtienes el nombre
+                # Buscar TODAS las radicaciones con este número (puede haber múltiples clientes)
+                radicaciones = Radicacion.objects.filter(numero_radicado=numero_radicado)
+                for radicacion in radicaciones:
+                    correos_clientes.append({
+                        'email': radicacion.cliente.email,
+                        'nombre': radicacion.cliente.first_name,
+                        'cliente_id': radicacion.cliente.id
+                    })
             except Exception as e:
-                mensaje_log = f"No se pudo obtener el correo del cliente: {e}"
-                nombre_cliente = ""
-            if correo_cliente:
-                asunto = f"Actualización Proceso Judicial - {numero_radicado}"
-                mensaje = f"""
-                <html>
-                <body>
-                    <p>Hola, <b>{nombre_cliente}</b></p>
-                    <h2 style="color:#1a237e;">Consulta Proceso Judicial</h2>
-                    <b>Información del Proceso</b><br>
-                    <b>Radicación:</b> {numero_radicado}<br>
-                    <b>Despacho:</b> {resultado.get("despacho_departamento", "")}<br>
-                    <b>Demandante:</b> {demandante}<br>
-                    <b>Demandado:</b> {demandado}<br>
-                    <b>Fecha de radicado:</b> {resultado.get("fecha_radicado", "")}<br>
-                    <b>Última actuación:</b> {fecha_reciente}<br>
-                    <hr>
-                    <p style="color:green;"><b>¡Se ha registrado una actuación reciente en su proceso judicial!</b></p>
-                    <p>Consulte el sistema para más detalles.</p>
-                    <br>
-                    <p>Saludos,<br><b>Sistema Judicial</b></p>
-                    <small>Este es un mensaje automático, no responda a este correo.</small>
-                </body>
-                </html>
-                """
-                correo_enviado = sender.enviar_correo(correo_cliente, asunto, mensaje, html=True)
+                mensaje_log = f"Error obteniendo clientes para radicado {numero_radicado}: {e}"
+                print(mensaje_log)
+            
+            # Enviar correo a TODOS los clientes que tienen este número de radicado
+            correo_enviado = False
+            for cliente_info in correos_clientes:
+                try:
+                    asunto = f"Actualización Proceso Judicial - {numero_radicado}"
+                    mensaje = f"""
+                    <html>
+                    <body>
+                        <p>Hola, <b>{cliente_info['nombre']}</b></p>
+                        <h2 style="color:#1a237e;">Consulta Proceso Judicial</h2>
+                        <b>Información del Proceso</b><br>
+                        <b>Radicación:</b> {numero_radicado}<br>
+                        <b>Despacho:</b> {resultado.get("despacho_departamento", "")}<br>
+                        <b>Demandante:</b> {demandante}<br>
+                        <b>Demandado:</b> {demandado}<br>
+                        <b>Fecha de radicado:</b> {resultado.get("fecha_radicado", "")}<br>
+                        <b>Última actuación:</b> {fecha_reciente}<br>
+                        <hr>
+                        <p style="color:green;"><b>¡Se ha registrado una actuación reciente en su proceso judicial!</b></p>
+                        <p>Consulte el sistema para más detalles.</p>
+                        <br>
+                        <p>Saludos,<br><b>Sistema Judicial</b></p>
+                        <small>Este es un mensaje automático, no responda a este correo.</small>
+                    </body>
+                    </html>
+                    """
+                    correo_individual = sender.enviar_correo(cliente_info['email'], asunto, mensaje, html=True)
+                    if correo_individual:
+                        correo_enviado = True
+                        print(f"✅ Correo enviado a {cliente_info['email']} ({cliente_info['nombre']})")
+                    else:
+                        print(f"❌ Fallo al enviar correo a {cliente_info['email']} ({cliente_info['nombre']})")
+                except Exception as e:
+                    print(f"❌ Error enviando correo a {cliente_info['email']}: {e}")
         else:
             mensaje_log = "No se encontró actuación reciente."
+            correo_enviado = False
     except Exception as e:
         mensaje_log = f"Error procesando {numero_radicado}: {str(e)}"
+        correo_enviado = False
 
     # Logging detallado
+    clientes_emails = [cliente['email'] for cliente in correos_clientes] if correos_clientes else []
     datos_log = {
         "fecha_consulta": time.strftime("%Y-%m-%d %H:%M:%S"),
         "numero_radicado": numero_radicado,
@@ -116,7 +138,8 @@ def scrape_proceso(driver, numero_radicado):
         "demandante": demandante,
         "demandado": demandado,
         "actuacion_reciente": fecha_reciente if fecha_reciente else "No",
-        "correo_cliente": correo_cliente,
+        "clientes_notificados": clientes_emails,
+        "total_clientes": len(clientes_emails),
         "correo_enviado": correo_enviado,
         "mensaje": mensaje_log
     }
@@ -151,14 +174,17 @@ def main():
             
             # --- AJUSTE PARA GUARDAR FECHAS EN LA BD ---
             try:
-                radicacion = Radicacion.objects.get(numero_radicado=numero_radicado)
-                radicacion.fecha_radicacion = datos.get('fecha_radicado')
-                radicacion.ultima_actuacion = datos.get('fecha_ultima_actuacion')
-                radicacion.despacho_departamento = datos.get('despacho_departamento')
-                radicacion.sujetos_procesales = datos.get('sujetos_procesales')
-                radicacion.save()
+                # Actualizar TODAS las radicaciones con este número (puede haber múltiples clientes)
+                radicaciones = Radicacion.objects.filter(numero_radicado=numero_radicado)
+                for radicacion in radicaciones:
+                    radicacion.fecha_radicacion = datos.get('fecha_radicado')
+                    radicacion.ultima_actuacion = datos.get('fecha_ultima_actuacion')
+                    radicacion.despacho_departamento = datos.get('despacho_departamento')
+                    radicacion.sujetos_procesales = datos.get('sujetos_procesales')
+                    radicacion.save()
+                print(f"✅ Actualizadas {radicaciones.count()} radicaciones para número {numero_radicado}")
             except Exception as e:
-                print(f"Error actualizando radicación {numero_radicado}: {e}")
+                print(f"❌ Error actualizando radicación {numero_radicado}: {e}")
             # -------------------------------------------
             
             time.sleep(3)

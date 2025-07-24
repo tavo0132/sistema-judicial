@@ -47,12 +47,20 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">📅 Programación Automática de Consultas</h5>
             {% if slots_data %}
-            <form action="{% url 'desactivar_todos_slots' %}" method="post" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Desactivar todas las programaciones?')">
-                    ❌ Desactivar Todas
-                </button>
-            </form>
+            <div class="d-flex gap-2">
+                <form action="{% url 'borrar_todas_tareas_programadas' %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Eliminar todas las tareas programadas? Esta acción no se puede deshacer.')">
+                        🗑️ Borrar Todas las Tareas
+                    </button>
+                </form>
+                <form action="{% url 'desactivar_todos_slots' %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Desactivar todas las programaciones?')">
+                        ❌ Desactivar Todas
+                    </button>
+                </form>
+            </div>
             {% endif %}
         </div>
         <div class="card-body">
@@ -191,7 +199,17 @@
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="mb-0">Clientes Registrados</h3>
-            <a href="{% url 'registrar_cliente' %}" class="btn btn-primary">Registrar Nuevo Cliente</a>
+            <div class="btn-group">
+                <a href="{% url 'registrar_cliente' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Nuevo Cliente
+                </a>
+                <a href="{% url 'clientes_eliminados' %}" class="btn btn-secondary">
+                    <i class="fas fa-trash"></i> Ver Eliminados
+                </a>
+                <a href="{% url 'logs_acciones_clientes' %}" class="btn btn-info">
+                    <i class="fas fa-history"></i> Historial
+                </a>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -231,9 +249,25 @@
                                     <a href="{% url 'editar_cliente' cliente.id %}" class="btn btn-sm btn-warning">
                                         <i class="fas fa-edit"></i> Editar
                                     </a>
-                                    <a href="{% url 'ver_radicaciones_cliente' cliente.id %}" class="btn btn-sm btn-info ms-1">
+                                    <a href="{% url 'ver_radicaciones_cliente' cliente.id %}" class="btn btn-sm btn-info">
                                         <i class="fas fa-folder-open"></i> Radicaciones
                                     </a>
+                                    <a href="{% url 'eliminar_cliente' cliente.id %}" class="btn btn-sm btn-danger" 
+                                       onclick="return confirm('¿Está seguro de eliminar este cliente? Esta acción se puede revertir.')">
+                                        <i class="fas fa-trash"></i> Eliminar
+                                    </a>
+                                    <form action="{% url 'cambiar_estado_cliente' cliente.id %}" method="post" style="display:inline;">
+                                        {% csrf_token %}
+                                        {% if cliente.estado_cliente == 'Activo' %}
+                                            <button type="submit" class="btn btn-sm btn-secondary" title="Marcar como Inactivo">
+                                                <i class="fas fa-user-slash"></i> Inactivar
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-sm btn-success" title="Marcar como Activo">
+                                                <i class="fas fa-user-check"></i> Activar
+                                            </button>
+                                        {% endif %}
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -249,8 +283,11 @@
     </div>
 
     <div class="card">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="mb-0">Últimas Radicaciones</h3>
+            <a href="{% url 'ver_radicaciones_duplicadas' %}" class="btn btn-warning btn-sm">
+                <i class="fas fa-copy"></i> Ver Duplicadas
+            </a>
         </div>
         <div class="card-body">
             <div class="table-responsive">
