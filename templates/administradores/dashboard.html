@@ -47,16 +47,20 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">📅 Programación Automática de Consultas</h5>
             {% if slots_data %}
-            <div class="d-flex gap-2">
-                <form action="{% url 'borrar_todas_tareas_programadas' %}" method="post" style="display: inline;">
+            <div>
+                <!-- Botón para eliminar todas las tareas programadas -->
+                <form action="{% url 'eliminar_todas_tareas_celery' %}" method="post" style="display: inline;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Eliminar todas las tareas programadas? Esta acción no se puede deshacer.')">
-                        🗑️ Borrar Todas las Tareas
+                    <button type="submit" class="btn btn-outline-danger btn-sm me-2"
+                        onclick="return confirm('¿Está seguro que desea eliminar TODAS las tareas programadas de Celery? Esta acción no se puede deshacer.');">
+                        🗑️ Eliminar Todas las Tareas
                     </button>
                 </form>
+                <!-- Botón existente: Desactivar Todas -->
                 <form action="{% url 'desactivar_todos_slots' %}" method="post" style="display: inline;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Desactivar todas las programaciones?')">
+                    <button type="submit" class="btn btn-danger btn-sm"
+                        onclick="return confirm('¿Desactivar todas las programaciones?')">
                         ❌ Desactivar Todas
                     </button>
                 </form>
@@ -199,17 +203,7 @@
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="mb-0">Clientes Registrados</h3>
-            <div class="btn-group">
-                <a href="{% url 'registrar_cliente' %}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Nuevo Cliente
-                </a>
-                <a href="{% url 'clientes_eliminados' %}" class="btn btn-secondary">
-                    <i class="fas fa-trash"></i> Ver Eliminados
-                </a>
-                <a href="{% url 'logs_acciones_clientes' %}" class="btn btn-info">
-                    <i class="fas fa-history"></i> Historial
-                </a>
-            </div>
+            <a href="{% url 'registrar_cliente' %}" class="btn btn-primary">Registrar Nuevo Cliente</a>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -249,24 +243,24 @@
                                     <a href="{% url 'editar_cliente' cliente.id %}" class="btn btn-sm btn-warning">
                                         <i class="fas fa-edit"></i> Editar
                                     </a>
-                                    <a href="{% url 'ver_radicaciones_cliente' cliente.id %}" class="btn btn-sm btn-info">
+                                    <a href="{% url 'ver_radicaciones_cliente' cliente.id %}" class="btn btn-sm btn-info ms-1">
                                         <i class="fas fa-folder-open"></i> Radicaciones
                                     </a>
-                                    <a href="{% url 'eliminar_cliente' cliente.id %}" class="btn btn-sm btn-danger" 
-                                       onclick="return confirm('¿Está seguro de eliminar este cliente? Esta acción se puede revertir.')">
-                                        <i class="fas fa-trash"></i> Eliminar
-                                    </a>
-                                    <form action="{% url 'cambiar_estado_cliente' cliente.id %}" method="post" style="display:inline;">
+                                    <form method="post" action="{% url 'eliminar_cliente' cliente.id %}" style="display:inline;">
                                         {% csrf_token %}
-                                        {% if cliente.estado_cliente == 'Activo' %}
-                                            <button type="submit" class="btn btn-sm btn-secondary" title="Marcar como Inactivo">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger ms-1" onclick="return confirm('¿Está seguro que desea eliminar este cliente? Esta acción es reversible.');">
+                                            <i class="fas fa-trash-alt"></i> Eliminar
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'cambiar_estado_cliente' cliente.id %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm {% if cliente.estado_cliente == 'Activo' %}btn-danger{% else %}btn-success{% endif %} ms-1" onclick="return confirm('¿Está seguro que desea cambiar el estado de este cliente?');">
+                                            {% if cliente.estado_cliente == 'Activo' %}
                                                 <i class="fas fa-user-slash"></i> Inactivar
-                                            </button>
-                                        {% else %}
-                                            <button type="submit" class="btn btn-sm btn-success" title="Marcar como Activo">
+                                            {% else %}
                                                 <i class="fas fa-user-check"></i> Activar
-                                            </button>
-                                        {% endif %}
+                                            {% endif %}
+                                        </button>
                                     </form>
                                 </div>
                             </td>
@@ -323,6 +317,58 @@
                         {% empty %}
                         <tr>
                             <td colspan="8" class="text-center">No hay radicaciones registradas</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de clientes eliminados al final -->
+    <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Clientes Eliminados</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Nombres</th>
+                            <th>Apellidos</th>
+                            <th>Cédula</th>
+                            <th>Correo</th>
+                            <th>Teléfono</th>
+                            <th>Ciudad</th>
+                            <th>País</th>
+                            <th>Fecha Eliminación</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in clientes_eliminados %}
+                        <tr>
+                            <td>{{ cliente.first_name }}</td>
+                            <td>{{ cliente.last_name }}</td>
+                            <td>{{ cliente.cedula }}</td>
+                            <td>{{ cliente.email }}</td>
+                            <td>{{ cliente.numero_telefono|default:"-" }}</td>
+                            <td>{{ cliente.ciudad|default:"-" }}</td>
+                            <td>{{ cliente.pais }}</td>
+                            <td>{{ cliente.deleted_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <form method="post" action="{% url 'restaurar_cliente' cliente.id %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('¿Está seguro que desea restaurar este cliente?');">
+                                        <i class="fas fa-undo"></i> Restaurar
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center">No hay clientes eliminados</td>
                         </tr>
                         {% endfor %}
                     </tbody>

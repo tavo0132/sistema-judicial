@@ -14,7 +14,7 @@ def obtener_fecha_actuacion_reciente(tabla_texto):
                 fecha_actual = datetime.now()
                 fecha_actuacion = datetime.strptime(fecha_str, "%Y-%m-%d")
                 dias_diferencia = (fecha_actual - fecha_actuacion).days
-                if dias_diferencia <= 3:  # Considera fechas dentro de los últimos 3 días
+                if dias_diferencia <= 10:  # Considera fechas dentro de los últimos 10 días
                     fechas.append((fecha_actuacion, fecha_str))
             except ValueError:
                 continue

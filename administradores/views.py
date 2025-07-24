@@ -1,19 +1,29 @@
-from django_celery_beat.models import PeriodicTask
-def borrar_todas_tareas_programadas(request):
+# Vista para restaurar cliente eliminado (undo soft delete)
+from django.utils import timezone
+def restaurar_cliente(request, cliente_id):
     if request.method == 'POST':
-        PeriodicTask.objects.all().delete()
-        from django.contrib import messages
-        tareas_restantes = PeriodicTask.objects.count()
-        if tareas_restantes == 0:
-            messages.success(request, 'Todas las tareas programadas han sido eliminadas correctamente.')
-        else:
-            messages.warning(request, f"Atención: {tareas_restantes} tareas no pudieron ser eliminadas.")
+        cliente = get_object_or_404(Cliente, id=cliente_id)
+        cliente.is_deleted = False
+        cliente.deleted_at = None
+        cliente.estado_cliente = 'Activo'
+        cliente.save()
+        messages.success(request, "El cliente ha sido restaurado correctamente.")
     return redirect('admin_dashboard')
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib import messages
+# Vista para eliminar cliente (soft delete)
+from django.utils import timezone
+def eliminar_cliente(request, cliente_id):
+    if request.method == 'POST':
+        cliente = get_object_or_404(Cliente, id=cliente_id)
+        cliente.is_deleted = True
+        cliente.deleted_at = timezone.now()
+        cliente.estado_cliente = 'Inactivo'
+        cliente.save()
+        messages.success(request, "El cliente ha sido eliminado correctamente. Puedes restaurarlo si lo necesitas.")
+    return redirect('admin_dashboard')
+from django.shortcuts import get_object_or_404
+# Vista para cambiar el estado del cliente (toggle Activo/Inactivo)
 def cambiar_estado_cliente(request, cliente_id):
     if request.method == 'POST':
-        from clientes.models import Cliente
         cliente = get_object_or_404(Cliente, id=cliente_id)
         nuevo_estado = 'Inactivo' if cliente.estado_cliente == 'Activo' else 'Activo'
         cliente.estado_cliente = nuevo_estado
@@ -81,14 +91,12 @@ def admin_dashboard(request):
     if not request.session.get('admin_id'):
         return redirect('admin_login')
     
-    # Obtener todos los clientes NO ELIMINADOS ordenados por fecha de registro
+    # Obtener todos los clientes ordenados por fecha de registro
     clientes = Cliente.objects.filter(is_deleted=False).order_by('-fecha_registro')
-
-    # Obtener las últimas 10 radicaciones SOLO de clientes activos
-    ultimas_radicaciones = Radicacion.objects.filter(
-        cliente__is_deleted=False,
-        cliente__estado_cliente='Activo'
-    ).order_by('-fecha_radicacion')[:10]
+    clientes_eliminados = Cliente.objects.filter(is_deleted=True).order_by('-deleted_at')
+    
+    # Obtener las últimas 10 radicaciones
+    ultimas_radicaciones = Radicacion.objects.all().order_by('-fecha_radicacion')[:10]
     
     # Obtener la última consulta programada local (para compatibilidad)
     ultima_consulta = ConsultaProgramada.objects.last()
@@ -160,6 +168,7 @@ def admin_dashboard(request):
     
     context = {
         'clientes': clientes,
+        'clientes_eliminados': clientes_eliminados,
         'ultimas_radicaciones': ultimas_radicaciones,
         'ultima_consulta': ultima_consulta,
         'slots_data': slots_data,
@@ -424,116 +433,15 @@ def ver_radicaciones_duplicadas(request):
     }
     
     return render(request, 'administradores/radicaciones_duplicadas.html', context)
+from django.contrib import messages
+from django.shortcuts import redirect
+from django_celery_beat.models import PeriodicTask
 
-# ==========================================
-# NUEVAS VISTAS PARA GESTIÓN DE CLIENTES
-# ==========================================
-
-@admin_required
-def eliminar_cliente(request, cliente_id):
-    """Vista para eliminar (soft delete) un cliente"""
-    try:
-        cliente = Cliente.objects.get(id=cliente_id, is_deleted=False)
-        admin_id = request.session.get('admin_id')
-        administrador = Administrador.objects.get(id_administrador=admin_id) if admin_id else None
-        
-        if request.method == 'POST':
-            # Realizar soft delete
-            cliente.soft_delete(admin_user=administrador)
-            
-            # Crear log de la acción
-            from clientes.utils import crear_log_accion_cliente
-            crear_log_accion_cliente(
-                cliente=cliente,
-                administrador=administrador,
-                accion='eliminar',
-                ip=request.META.get('REMOTE_ADDR'),
-                observaciones=f'Cliente eliminado desde dashboard de administrador'
-            )
-            
-            # Crear notificación
-            from clientes.utils import crear_notificacion
-            crear_notificacion(
-                tipo='cliente_eliminado',
-                titulo='Cliente Eliminado',
-                mensaje=f'El cliente {cliente.first_name} {cliente.last_name} ha sido eliminado del sistema',
-                es_para_admin=True,
-                url_relacionada='/administradores/clientes-eliminados/'
-            )
-            
-            messages.success(request, f'Cliente {cliente.first_name} {cliente.last_name} eliminado exitosamente')
-            return redirect('admin_dashboard')
-        
-        context = {
-            'cliente': cliente,
-            'total_radicaciones': cliente.radicacion_set.count()
-        }
-        return render(request, 'administradores/confirmar_eliminar_cliente.html', context)
-        
-    except Cliente.DoesNotExist:
-        messages.error(request, 'Cliente no encontrado o ya está eliminado')
-        return redirect('admin_dashboard')
-
-@admin_required
-def clientes_eliminados(request):
-    """Vista para mostrar clientes eliminados"""
-    clientes_eliminados = Cliente.objects.filter(is_deleted=True).order_by('-deleted_at')
-    
-    context = {
-        'clientes_eliminados': clientes_eliminados,
-        'total_eliminados': clientes_eliminados.count()
-    }
-    
-    return render(request, 'administradores/clientes_eliminados.html', context)
-
-@admin_required
-def restaurar_cliente(request, cliente_id):
-    """Vista para restaurar un cliente eliminado"""
-    try:
-        cliente = Cliente.objects.get(id=cliente_id, is_deleted=True)
-        admin_id = request.session.get('admin_id')
-        administrador = Administrador.objects.get(id_administrador=admin_id) if admin_id else None
-        
-        # Restaurar cliente
-        cliente.restore()
-        
-        # Crear log de la acción
-        from clientes.utils import crear_log_accion_cliente
-        crear_log_accion_cliente(
-            cliente=cliente,
-            administrador=administrador,
-            accion='restaurar',
-            ip=request.META.get('REMOTE_ADDR'),
-            observaciones=f'Cliente restaurado desde lista de eliminados'
-        )
-        
-        # Crear notificación
-        from clientes.utils import crear_notificacion
-        crear_notificacion(
-            tipo='cliente_restaurado',
-            titulo='Cliente Restaurado',
-            mensaje=f'El cliente {cliente.first_name} {cliente.last_name} ha sido restaurado en el sistema',
-            es_para_admin=True,
-            url_relacionada='/administradores/dashboard/'
-        )
-        
-        messages.success(request, f'Cliente {cliente.first_name} {cliente.last_name} restaurado exitosamente')
-        return redirect('clientes_eliminados')
-        
-    except Cliente.DoesNotExist:
-        messages.error(request, 'Cliente no encontrado')
-        return redirect('clientes_eliminados')
-
-@admin_required
-def logs_acciones_clientes(request):
-    """Vista para mostrar el historial de acciones sobre clientes"""
-    from clientes.models import LogAccionCliente
-    
-    logs = LogAccionCliente.objects.select_related('cliente', 'administrador').order_by('-fecha_hora')[:100]  # Últimos 100 logs
-    
-    context = {
-        'logs': logs,
-        'total_logs': logs.count()
-    }
-    
-    return render(request, 'administradores/logs_acciones_clientes.html', context)
+def eliminar_todas_tareas_celery(request):
+    if request.method == "POST":
+        try:
+            PeriodicTask.objects.all().delete()
+            messages.success(request, "¡Todas las tareas programadas de Celery han sido eliminadas correctamente!")
+        except Exception as e:
+            messages.error(request, f"Error al eliminar las tareas: {str(e)}")
+    return redirect('admin_dashboard')

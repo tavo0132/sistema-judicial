@@ -4,6 +4,13 @@
 
 {% block content %}
 <div class="container mt-4">
+    {% if cliente.is_deleted or cliente.estado_cliente != 'Activo' %}
+    <div class="alert alert-danger text-center" style="font-size: 1.3rem; font-weight: bold;">
+        <p>» Su usuario se encuentra <b>Inactivo</b>, para mayor información por favor ponerse en contacto con el Administrador del sistema.</p>
+        <p>» Se suspenderá el monitoreo de sus radicaciones y no podrá consultar la información actualizada de sus notificaciones.</p>
+        <p>» No recibirá notificaciones en tiempo real de sus radicaciones.</p>
+    </div>
+    {% endif %}
     <div class="row">
         <div class="col-12">
             <h2>Dashboard de Cliente</h2>
