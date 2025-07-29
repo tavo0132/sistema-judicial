@@ -59,6 +59,7 @@ class Radicacion(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     despacho_departamento = models.CharField(max_length=255, null=True, blank=True)
     sujetos_procesales = models.CharField(max_length=500, null=True, blank=True)
+    is_deleted = models.BooleanField(default=False)  # Soft delete
     
     class Meta:
         db_table = 'radicaciones'

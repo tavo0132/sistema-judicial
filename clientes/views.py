@@ -5,6 +5,9 @@ from django.utils import timezone
 from django.db.utils import IntegrityError
 from .models import Cliente, Radicacion, LogAccesoCliente, Notificacion
 from .utils import crear_notificacion
+from django.urls import path
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 # Create your views here.
 
@@ -122,17 +125,13 @@ def editar_cliente(request, id_cliente):
         messages.error(request, 'Cliente no encontrado')
         return redirect('cliente_login')
 
-def ver_radicaciones_cliente(request, id_cliente):
-    try:
-        cliente = Cliente.objects.get(id=id_cliente)
-        radicaciones = cliente.radicacion_set.all()
-        return render(request, 'clientes/radicaciones.html', {
-            'cliente': cliente,
-            'radicaciones': radicaciones
-        })
-    except Cliente.DoesNotExist:
-        messages.error(request, 'Cliente no encontrado')
-        return redirect('admin_dashboard')
+def ver_radicaciones_cliente(request, cliente_id):
+    cliente = get_object_or_404(Cliente, id=cliente_id)
+    radicaciones = Radicacion.objects.filter(cliente=cliente, is_deleted=False).order_by('-fecha_creacion')
+    return render(request, 'clientes/radicaciones.html', {
+        'cliente': cliente,
+        'radicaciones': radicaciones
+    })
 
 def crear_radicacion(request, cliente_id):
     if request.method == 'POST':
@@ -147,7 +146,7 @@ def crear_radicacion(request, cliente_id):
 
             # Solo validar duplicado específico para este cliente
             # (eliminamos la validación global para que diferentes clientes puedan tener el mismo número)
-            if Radicacion.objects.filter(cliente=cliente, numero_radicado=numero_radicado).exists():
+            if Radicacion.objects.filter(cliente=cliente, numero_radicado=numero_radicado, is_deleted=False).exists():
                 messages.warning(request, 'Ya tiene registrado este número de radicado.')
                 return render(request, 'clientes/crear_radicacion.html', {'cliente': cliente})
 
@@ -160,7 +159,7 @@ def crear_radicacion(request, cliente_id):
                 estado_radicado='Abierto',
             )
             messages.success(request, '¡Radicación creada con éxito!')
-            return redirect('ver_radicaciones_cliente', id_cliente=cliente_id)
+            return redirect('ver_radicaciones_cliente', cliente_id=cliente_id)
 
         except Cliente.DoesNotExist:
             messages.error(request, 'Cliente no encontrado.')
@@ -189,15 +188,17 @@ def cliente_dashboard(request):
     cliente_id = request.session['cliente_id']
     try:
         cliente = Cliente.objects.get(id=cliente_id)
-        radicaciones = Radicacion.objects.filter(cliente=cliente).order_by('-fecha_radicacion')  # <--- CAMBIO AQUÍ
+        radicaciones = Radicacion.objects.filter(cliente=cliente, is_deleted=False).order_by('-fecha_radicacion')
+        radicaciones_borradas = Radicacion.objects.filter(cliente=cliente, is_deleted=True).order_by('-fecha_radicacion')  # <-- AGREGADO
         notificaciones = Notificacion.objects.filter(
             cliente=cliente,
             es_para_admin=False
-        ).order_by('-fecha_creacion')[:5]  # Últimas 5 notificaciones
+        ).order_by('-fecha_creacion')[:5]
         
         context = {
             'cliente': cliente,
             'radicaciones': radicaciones,
+            'radicaciones_borradas': radicaciones_borradas,  # <-- AGREGADO
             'notificaciones': notificaciones
         }
         return render(request, 'clientes/dashboard.html', context)
@@ -209,10 +210,12 @@ def dashboard_cliente(request):
     if request.user.is_authenticated:
         try:
             cliente = Cliente.objects.get(user=request.user)
-            radicaciones = Radicacion.objects.filter(cliente=cliente).order_by('-fecha_creacion')
+            radicaciones = Radicacion.objects.filter(cliente=cliente, is_deleted=False).order_by('-fecha_creacion')
+            radicaciones_borradas = Radicacion.objects.filter(cliente=cliente, is_deleted=True).order_by('-fecha_creacion')
             return render(request, 'clientes/dashboard.html', {
                 'cliente': cliente,
-                'radicaciones': radicaciones
+                'radicaciones': radicaciones,
+                'radicaciones_borradas': radicaciones_borradas
             })
         except Cliente.DoesNotExist:
             return redirect('clientes:registro')
@@ -221,11 +224,35 @@ def dashboard_cliente(request):
 @login_required
 def eliminar_radicacion(request, radicacion_id):
     radicacion = get_object_or_404(Radicacion, id=radicacion_id)
-    cliente_id = radicacion.cliente.id
-    radicacion.delete()
-    messages.success(request, 'Radicación eliminada correctamente.')
-    # Redirige según el usuario
-    if request.user.is_staff:
-        return redirect('admin_dashboard')
+    radicacion.is_deleted = True  # Marcar como borrada
+    radicacion.save()
+    messages.success(request, 'Radicación marcada como borrada correctamente.')
+    return redirect('cliente_dashboard')  # <--- SIEMPRE redirige al dashboard de clientes
+
+def ver_radicacion_detalle(request, radicacion_id):
+    radicacion = get_object_or_404(Radicacion, id=radicacion_id)
+    return render(request, 'clientes/radicacion_detalle.html', {'radicacion': radicacion})
+
+@login_required
+def restaurar_radicacion(request, radicacion_id):
+    radicacion = get_object_or_404(Radicacion, id=radicacion_id, is_deleted=True)
+    radicacion.is_deleted = False
+    radicacion.save()
+    messages.success(request, 'Radicación restaurada correctamente.')
+    return redirect('cliente_dashboard')
+
+@login_required
+def cambiar_estado_radicacion(request, radicacion_id):
+    radicacion = get_object_or_404(Radicacion, id=radicacion_id)
+    if radicacion.estado_radicado == 'Abierto':
+        radicacion.estado_radicado = 'Cerrado'
     else:
-        return redirect('ver_radicaciones_cliente', id_cliente=cliente_id)
+        radicacion.estado_radicado = 'Abierto'
+    radicacion.save()
+    messages.success(request, f'El estado de la radicación cambió a {radicacion.estado_radicado}.')
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('cliente_dashboard')))
+
+urlpatterns = [
+    # ... otras rutas ...
+    path('radicaciones/<int:cliente_id>/', ver_radicaciones_cliente, name='ver_radicaciones_cliente'),
+]

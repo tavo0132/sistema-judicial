@@ -44,8 +44,7 @@
                     <td>{{ radicacion.proceso_consultado }}</td>
                     <td>
                         <button class="btn btn-info btn-sm">Ver Detalles</button>
-                        <a href="{% url 'eliminar_radicacion' radicacion.id %}" class="btn btn-danger btn-sm"
-                           onclick="return confirm('¿Está seguro de eliminar esta radicación?');">Eliminar</a>
+                        <a href="{% url 'eliminar_radicacion' radicacion.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que deseas eliminar esta radicación?')">Eliminar</a>
                     </td>
                 </tr>
                 {% endfor %}
