@@ -207,19 +207,9 @@ def cliente_dashboard(request):
         return redirect('cliente_login')
 
 def dashboard_cliente(request):
-    if request.user.is_authenticated:
-        try:
-            cliente = Cliente.objects.get(user=request.user)
-            radicaciones = Radicacion.objects.filter(cliente=cliente, is_deleted=False).order_by('-fecha_creacion')
-            radicaciones_borradas = Radicacion.objects.filter(cliente=cliente, is_deleted=True).order_by('-fecha_creacion')
-            return render(request, 'clientes/dashboard.html', {
-                'cliente': cliente,
-                'radicaciones': radicaciones,
-                'radicaciones_borradas': radicaciones_borradas
-            })
-        except Cliente.DoesNotExist:
-            return redirect('clientes:registro')
-    return redirect('clientes:login')
+    cliente = request.user
+    radicaciones = Radicacion.objects.filter(cliente=cliente)
+    return render(request, 'clientes/dashboard.html', {'radicaciones': radicaciones})
 
 @login_required
 def eliminar_radicacion(request, radicacion_id):
@@ -251,6 +241,22 @@ def cambiar_estado_radicacion(request, radicacion_id):
     radicacion.save()
     messages.success(request, f'El estado de la radicación cambió a {radicacion.estado_radicado}.')
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('cliente_dashboard')))
+
+def cerrar_radicado(request, radicacion_id):
+    radicacion = get_object_or_404(Radicacion, id=radicacion_id)
+    if request.method == "POST":
+        radicacion.estado_radicado = "Cerrado"
+        radicacion.save()
+        messages.success(request, "Radicación cerrada correctamente.")
+    return redirect('dashboard_cliente')
+
+def abrir_radicado(request, radicacion_id):
+    radicacion = get_object_or_404(Radicacion, id=radicacion_id)
+    if request.method == "POST":
+        radicacion.estado_radicado = "Abierto"
+        radicacion.save()
+        messages.success(request, "Radicación abierta correctamente.")
+    return redirect('dashboard_cliente')
 
 urlpatterns = [
     # ... otras rutas ...

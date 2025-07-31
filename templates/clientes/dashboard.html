@@ -101,23 +101,29 @@
                                     <td>{{ radicacion.fecha_radicacion|date:"Y-m-d" }}</td>
                                     <td>{{ radicacion.ultima_actuacion|date:"Y-m-d" }}</td>
                                     <td>
-                                        {% if radicacion.estado_radicado == 'Abierto' %}
-                                            <span style="background-color: #28a745; color: white; padding: 2px 10px; border-radius: 8px; font-size: 0.9em;">Abierto</span>
+                                        {% if radicacion.estado_radicado == "Abierto" %}
+                                            <span class="badge bg-success">Abierto</span>
+                                        {% elif radicacion.estado_radicado == "Cerrado" %}
+                                            <span class="badge bg-danger">Cerrado</span>
                                         {% else %}
-                                            <span style="background-color: #dc3545; color: white; padding: 2px 10px; border-radius: 8px; font-size: 0.9em;">Cerrado</span>
+                                            <span class="badge bg-secondary">{{ radicacion.estado_radicado }}</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ radicacion.despacho_departamento }}</td>
                                     <td>{{ radicacion.sujetos_procesales }}</td>
                                     <td>{{ radicacion.proceso_consultado }}</td>
                                     <td>
-                                        <a href="{% url 'cambiar_estado_radicacion' radicacion.id %}" class="btn btn-secondary btn-sm">
-                                            {% if radicacion.estado_radicado == 'Abierto' %}
-                                                Cerrar
-                                            {% else %}
-                                                Abrir
-                                            {% endif %}
-                                        </a>
+                                        {% if radicacion.estado_radicado == "Abierto" %}
+                                            <form method="post" action="{% url 'cerrar_radicado' radicacion.id %}" style="display:inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger btn-sm">Cerrar</button>
+                                            </form>
+                                        {% else %}
+                                            <form method="post" action="{% url 'abrir_radicado' radicacion.id %}" style="display:inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-success btn-sm">Abrir</button>
+                                            </form>
+                                        {% endif %}
                                         <!-- Botón Eliminar existente -->
                                         <a href="{% url 'eliminar_radicacion' radicacion.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Deseas eliminar esta radicación?')">Eliminar</a>
                                     </td>

@@ -159,11 +159,16 @@ def scrape_proceso_con_reintentos(driver, numero_radicado, max_reintentos=3):
                 }
 
 def main():
-    # Obtiene solo radicaciones de clientes activos y no eliminados
+    # Obtiene solo radicaciones de clientes activos, no eliminados y radicados abiertos
     radicaciones_filtradas = Radicacion.objects.filter(
         cliente__estado_cliente='Activo',
-        cliente__is_deleted=False
+        cliente__is_active=True,
+        cliente__is_deleted=False,
+        estado_radicado='Abierto'
     )
+    print(f"Radicaciones a consultar: {radicaciones_filtradas.count()}")
+    for r in radicaciones_filtradas:
+        print(f"Radicado: {r.numero_radicado} - Cliente: {r.cliente_id}")
     radicados = list(radicaciones_filtradas.values_list('numero_radicado', flat=True))
     resultados = []
 
@@ -175,10 +180,12 @@ def main():
 
     try:
         for numero_radicado in radicados:
+            print(f"Iniciando scraping para: {numero_radicado}")
             datos = scrape_proceso(driver, numero_radicado)
+            print(f"Resultado para {numero_radicado}: {datos}")
             resultados.append(datos)
             log_scraping(f"Datos extraídos para {numero_radicado}: {datos}")
-            
+
             # --- AJUSTE PARA GUARDAR FECHAS EN LA BD ---
             try:
                 radicacion = Radicacion.objects.get(numero_radicado=numero_radicado)
@@ -190,7 +197,7 @@ def main():
             except Exception as e:
                 print(f"Error actualizando radicación {numero_radicado}: {e}")
             # -------------------------------------------
-            
+
             time.sleep(3)
     finally:
         driver.quit()

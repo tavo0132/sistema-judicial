@@ -50,7 +50,7 @@ class Radicacion(models.Model):
     numero_radicado = models.CharField(max_length=50)  # Quitamos unique=True para permitir duplicados globales
     fecha_radicacion = models.DateField(blank=True, null=True)
     ultima_actuacion = models.DateField(blank=True, null=True)  # Nuevo campo
-    estado_radicado = models.CharField(max_length=20, default='abierto')
+    estado_radicado = models.CharField(max_length=20, choices=[('Abierto', 'Abierto'), ('Cerrado', 'Cerrado')], default='Abierto')
     PROCESO_CONSULTADO_CHOICES = [
         ('Sí', 'Sí'),
         ('No', 'No'),
